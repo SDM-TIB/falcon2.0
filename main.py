@@ -869,7 +869,7 @@ def datasets_evaluate():
     endQ=5000
     errors=0
 
-    questions=read_dataset('simplequestions.txt')
+    questions=read_dataset('datasets/simplequestions.txt')
     
     if threading:
         pool = ThreadPool(12)
