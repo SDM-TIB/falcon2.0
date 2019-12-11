@@ -21,6 +21,6 @@ python3 main.py --q <query>
 
 To evaluate the tool on a dataset:
 ```
-python2 main.py --d <path_To_Dataset>
+python3 main.py --d <path_To_Dataset>
 ```
 
