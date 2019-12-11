@@ -17,18 +17,30 @@ Wikidata SPARQL endpoint helps us to quickly search and analyse big volumes of t
 ```
 wikidataSPARQL = " "
 ```
-We then create indices for property search and entity search over wikidata. Refer to the following two functions in Elastic/addIndex.py for the code:
+Note that Elasticsearch uses JSON as the serialisation format for the documents. Thus, we query for JSON objects and We then create indices for property search and entity search over wikidata. Refer to the following two functions in Elastic/addIndex.py for the code:
 ```
 def propertyIndexAdd(): ...
 def entitiesIndexAdd(): ...
 ```
+Furthermore, we need to execute a search query and get back search hits that match the query. The search query feature is used to find whether a mention is an entity or a property in Wikidata. The elasticsearch query used to retrieve candidates from elasticsearch is as follows:
+```
+{
+  "query": {
+    "match" : { "label" : "operating income" }
+  }
+}
+```
+Search queries over Wikidata are implemented in Elastic/searchIndex.py. Refer to the following two functions for entity search and property search in Wikidata using elastic search:
+```
+def entitySearch(query): ...
+def propertySearch(query): ...
+```
+
 ## Algorithm
-main.py contains the code for automatic entity and relation linking to resources in Wikidata using rule-based learning. Falcon 2.0 uses the same approach for Wikidata knowledge graph as used in Falcon for DBpedia Spotlight. The rules that represent the English morphology are maintained in a catalog; a forward chaining inference process is performed on top of the catalog during the tasks of extractionand linking. Falcon 2.0 also comprises several modules that identify and link entities and relations to Wikidata knowledge graph. These modules implement POS  Tagging,  Tokenization  &  Compounding,  N-Gram  Tiling,  Candidate  ListGeneration, Matching & Ranking, Query Classifier, and N-Gram Splitting and are reused from the implementation of Falcon. 
+main.py contains the code for automatic entity and relation linking to resources in Wikidata using rule-based learning. Falcon 2.0 uses the same approach for Wikidata knowledge graph as used in Falcon for DBpedia Spotlight. The rules that represent the English morphology are maintained in a catalog; a forward chaining inference process is performed on top of the catalog during the tasks of extractionand linking. Falcon 2.0 also comprises several modules that identify and link entities and relations to Wikidata knowledge graph. These modules implement POS Tagging, Tokenization & Compounding, N-Gram Tiling, Candidate  ListGeneration, Matching & Ranking, Query Classifier, and N-Gram Splitting and are reused from the implementation of Falcon. 
 
 ## Evaluation
-We empirically evaluated Falcon 2.0 on a question answering dataset tailored for Wikidata and Falcon 2.0 significantly outperforms the baseline. We worked on two different question answering datasets namely Simple-Question Dataset for Wikidata and LC-QuAD 2.0. SimpleQuestion dataset contains 6505 test questions which are answerable using Wikidata as underlying Knowledge Graph. We randomly selected 1000 questions from LC-QuAD 2.0 to test the robustness of our tool on complex questions. We chose OpenTapioca as our baseline for entity and relation linking. OpenTapioca is available as web API and can provide Wikidata URIs for relations and entities. We are not aware of any other tool/approach that provides Wikidata entity linking.
-
-You may choose to run the tool for a single query or evalauate it on a dataset.
+You may choose to run the tool for a single query or evaluate it on a dataset.
 To run the tool on a single query (short text):
 ```
 python3 main.py --q <query>
@@ -39,4 +51,14 @@ When evaluating a dataset, the program compares the entitites and relations extr
 python3 main.py --d <path_To_Dataset>
 ```
 
-We also evaluated OpenTapioca a
+We empirically evaluated Falcon 2.0 on a question answering dataset tailored for Wikidata and Falcon 2.0 significantly outperforms the baseline. We worked on two different question answering datasets namely Simple-Question Dataset for Wikidata and LC-QuAD 2.0. 
+
+### Baseline
+
+We chose OpenTapioca as our baseline for entity and relation linking. OpenTapioca is available as web API and can provide Wikidata URIs for relations and entities. We are not aware of any other tool/approach that provides Wikidata entity linking.
+
+### Results on SimpleQuestions dataset
+SimpleQuestion dataset contains 6505 test questions which are answerable using Wikidata as underlying Knowledge Graph. We observe that for baseline, the values surprisingly areapproximately zero for precision,recall, and F-score. We analysed the source oferrors,  and  found  that  out  of  6505  questions,  only  246  have  entity  labels  inuppercase  letters.  Opentapioca  can  not  recognise  entities  and  link  any  entitywritten in lowercase letters. For remaining 246 questions, only 70 gives the correct answer for OpenTapioca. On the other hand, Falcon 2.0 reports F-score 0.63 on the same dataset.
+
+### Results on LC-Quad 2.0
+Given the limitations of OpenTapioca on Simplequestions dataset, we randomly selected 1000 questions from LC-QuAD 2.0 to test the robustness of our tool on complex questions. OpenTapioca reports F-score 0.25 against Falcon 2.0 with F-score 0.68.
