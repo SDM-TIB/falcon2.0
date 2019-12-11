@@ -20,7 +20,7 @@ from difflib import SequenceMatcher
 
 nlp = spacy.load('en')
 wikidataSPARQL="https://17d140f2.ngrok.io/sparql"
-
+evaluation = False
 stopWordsList=stopwords.getStopWords()
 comparsion_words=stopwords.getComparisonWords()
 
@@ -689,7 +689,6 @@ def split_bas_on_comparison(combinations):
             
 
 def evaluate(raw):
-    evaluation=True
     startTime=time.time()
     oneQuestion=False
     global correctRelations
@@ -849,7 +848,7 @@ def evaluate(raw):
     return raw
 
 
-def datasets_evaluate():
+def datasets_evaluate(dataset_file):
     threading=True
     k=1
     kMax=10
@@ -868,8 +867,9 @@ def datasets_evaluate():
     startQ=0
     endQ=5000
     errors=0
-
-    questions=read_dataset('datasets/simplequestions.txt')
+    
+    filepath = 'datasets/'+dataset_file
+    questions=read_dataset(filepath)
     
     if threading:
         pool = ThreadPool(12)
@@ -902,7 +902,12 @@ def datasets_evaluate():
     y=[question[4] for question in questions]
 
 if __name__ == '__main__':
-    datasets_evaluate()
+    if sys.argv[1] == '--d'
+        evaluation = True
+        datasets_evaluate(sys.argv[2])
+    else:
+        evaluation = False
+        evaluate(sys.argv[2])
 
     
 
