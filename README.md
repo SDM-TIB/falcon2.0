@@ -59,6 +59,13 @@ We chose OpenTapioca as our baseline for entity and relation linking. OpenTapioc
 
 ### Results on SimpleQuestions dataset
 SimpleQuestion dataset contains 6505 test questions which are answerable using Wikidata as underlying Knowledge Graph. We observe that for baseline, the values surprisingly are approximately zero for precision, recall, and F-score. We analysed the source of errors,  and  found  that  out  of  6505  questions,  only  246  have  entity  labels  in uppercase  letters.  Opentapioca  can  not  recognise  entities  and  link  any  entity written in lowercase letters. For remaining 246 questions, only 70 gives the correct answer for OpenTapioca. On the other hand, Falcon 2.0 reports F-score 0.63 on the same dataset.
-
+The code for opentapioca evaluation on Simplequestions can be found in evaluation/opentapioca.py. We implement a wrapper for Opentapioca API to send requests and retrive data quickly. The following function refers to the wrapper:
+```
+def open_tapioca_call(text): ...
+```
+Opentapioca returns a JSON object with annotations for mentions in the text. It outputs all the candidate entities for a mention along with the best ranked entity or property under the attribute 'best_qid'. We consider the best ranked entity as the output and compare it with the true entities in the dataset. You can evaluate using the following function (annotations refer to Opentapioca output and raw refers to the true entities as mentioned in the dataset):
+```
+def evaluate(annotations, raw): ...
+```
 ### Results on LC-Quad 2.0
 Given the limitations of OpenTapioca on Simplequestions dataset, we randomly selected 1000 questions from LC-QuAD 2.0 to test the robustness of our tool on complex questions. OpenTapioca reports F-score 0.25 against Falcon 2.0 with F-score 0.68.
