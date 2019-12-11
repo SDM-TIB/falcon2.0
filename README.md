@@ -17,12 +17,12 @@ Wikidata SPARQL endpoint helps us to quickly search and analyse big volumes of t
 ```
 wikidataSPARQL = " "
 ```
-Note that Elasticsearch uses JSON as the serialisation format for the documents. Thus, we query for JSON objects and We then create indices for property search and entity search over wikidata. Refer to the following two functions in Elastic/addIndex.py for the code:
+We then create indices for property search and entity search over wikidata. Refer to the following two functions in Elastic/addIndex.py for the code:
 ```
 def propertyIndexAdd(): ...
 def entitiesIndexAdd(): ...
 ```
-Furthermore, we need to execute a search query and get back search hits that match the query. The search query feature is used to find whether a mention is an entity or a property in Wikidata. The elasticsearch query used to retrieve candidates from elasticsearch is as follows:
+Furthermore, we need to execute a search query and get back search hits that match the query. The search query feature is used to find whether a mention is an entity or a property in Wikidata. Note that Elasticsearch uses JSON as the serialisation format for the documents. The elasticsearch query used to retrieve candidates from elasticsearch is as follows:
 ```
 {
   "query": {
@@ -30,7 +30,7 @@ Furthermore, we need to execute a search query and get back search hits that mat
   }
 }
 ```
-Search queries over Wikidata are implemented in Elastic/searchIndex.py. Refer to the following two functions for entity search and property search in Wikidata using elastic search:
+Search queries over Wikidata are implemented in Elastic/searchIndex.py. Refer to the following two functions in the same file for entity search and property search in Wikidata:
 ```
 def entitySearch(query): ...
 def propertySearch(query): ...
@@ -58,7 +58,7 @@ We empirically evaluated Falcon 2.0 on a question answering dataset tailored for
 We chose OpenTapioca as our baseline for entity and relation linking. OpenTapioca is available as web API and can provide Wikidata URIs for relations and entities. We are not aware of any other tool/approach that provides Wikidata entity linking.
 
 ### Results on SimpleQuestions dataset
-SimpleQuestion dataset contains 6505 test questions which are answerable using Wikidata as underlying Knowledge Graph. We observe that for baseline, the values surprisingly areapproximately zero for precision,recall, and F-score. We analysed the source oferrors,  and  found  that  out  of  6505  questions,  only  246  have  entity  labels  inuppercase  letters.  Opentapioca  can  not  recognise  entities  and  link  any  entitywritten in lowercase letters. For remaining 246 questions, only 70 gives the correct answer for OpenTapioca. On the other hand, Falcon 2.0 reports F-score 0.63 on the same dataset.
+SimpleQuestion dataset contains 6505 test questions which are answerable using Wikidata as underlying Knowledge Graph. We observe that for baseline, the values surprisingly are approximately zero for precision, recall, and F-score. We analysed the source of errors,  and  found  that  out  of  6505  questions,  only  246  have  entity  labels  in uppercase  letters.  Opentapioca  can  not  recognise  entities  and  link  any  entity written in lowercase letters. For remaining 246 questions, only 70 gives the correct answer for OpenTapioca. On the other hand, Falcon 2.0 reports F-score 0.63 on the same dataset.
 
 ### Results on LC-Quad 2.0
 Given the limitations of OpenTapioca on Simplequestions dataset, we randomly selected 1000 questions from LC-QuAD 2.0 to test the robustness of our tool on complex questions. OpenTapioca reports F-score 0.25 against Falcon 2.0 with F-score 0.68.
