@@ -14,7 +14,7 @@ To change elastic search endpoint, makes changes in Elastic/searchIndex.py:
 es = Elasticsearch(['http://localhost:9200'])
 ```
 
-To test the tool on a short text:
+To run the tool on a short text:
 ```
 python3 main.py --q <query>
 ```
