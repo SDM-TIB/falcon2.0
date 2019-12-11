@@ -260,35 +260,10 @@ def reRank_results(relation,results):
         final_results.append(results[result[0]])
     return final_results
 
-# not used in Falcon 2.0
-def get_relation_range(relation):
-    sparql = SPARQLWrapper(wikidataSPARQL)
-    sparql.setQuery("""
-               PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-               SELECT ?range WHERE {<relation> rdfs:range ?range}  
-            """)
-    sparql.setReturnFormat(JSON)
-    results1 = sparql.query().convert()
-    if len(results1['results']['bindings'])==0:
-        return ""
-    else:
-        return results1['results']['bindings'][0]['range']['value']
-
 
 def get_question_word_type(questionWord):
     if questionWord.lower()=="who":
         return "http://www.wikidata.org/wiki/Q215627"
-
-# not used in Falcon 2.0  
-def check_entity_type(entity,rangeType):
-    sparql = SPARQLWrapper(wikidataSPARQL)
-    sparql.setQuery("""
-               PREFIX rdf: <http://www.w3.org/2000/01/rdf-schema#label>
-               ASK {<entity[1]> rdf:type <rangeType>}  
-            """)
-    sparql.setReturnFormat(JSON)
-    results1 = sparql.query().convert()
-    return results1['boolean']
 
 
 def rank_triple(entities,relations,questionWord,question,k):
@@ -372,26 +347,15 @@ def reRank_relations(entities,relations,questionWord,questionRelationsNumber,que
                 if results1['boolean']:
                     targetType=get_question_word_type(questionWord)
                     if "/property/" not in relation[1] and  targetType is not None:
-                        #rangeType=get_relation_range(relation[1])
                         if check_relation_range_type(relation[1],targetType) :
                             correctRelations.append(relation)
-                            #entity_raw[0]=entity
                             entity[3]+=15
                             relation[3]+=15
-                            #print(relation)
-                            #print(entity)
-                            
-                            #print("query 1")
-                    #print(relation)
                     else:
                         correctRelations.append(relation)
-                        #entity_raw[0]=entity
                         
                         entity[3]+=12
                         relation[3] += 12
-                        #print(relation)
-                        #print(entity)
-                    #return correctRelations[:k],entities
                     continue
                 #############################################################
                 sparql.setQuery("""
@@ -409,21 +373,12 @@ def reRank_relations(entities,relations,questionWord,questionRelationsNumber,que
                         
                         if check_relation_range_type(relation[1],targetType) :
                             correctRelations.append(relation)
-                            #entity_raw[0]=entity
                             entity[3]+=10
                             relation[3] += 10
-                            #print(relation)
-                            #print(entity)
-                            #print("query 2")
-                    #print(relation)
                     else:
                         correctRelations.append(relation)
-                        #entity_raw[0]=entity
                         entity[3]+=8
-                        relation[3] += 8
-                        #print(relation)
-                        #print(entity)
-                        #return correctRelations[:k],entities    
+                        relation[3] += 8   
                     continue
                 #################################################################
                 sparql.setQuery("""
@@ -436,26 +391,15 @@ def reRank_relations(entities,relations,questionWord,questionRelationsNumber,que
                     if results3['boolean']:
                         targetType=get_question_word_type(questionWord)
                         if "/property/" not in relation[1] and  targetType is not None :
-                            #rangeType=get_relation_range(relation[1])
                             
                             if check_relation_range_type(relation[1],targetType) :
                                 correctRelations.append(relation)
-                                #entity_raw[0]=entity
-                                #print(entity)
                                 entity[3]+=5
                                 relation[3] += 5
-                                #print(relation)
-                                #print(entity)
-                                #print("query 3")
-                        #print(relation)
                         else:
                             correctRelations.append(relation)
                             entity[3]+=3
-                            relation[3] += 3
-                            #print(relation)
-                            #print(entity)
-                            #entity_raw[0]=entity
-                        #return correctRelations[:k],entities    
+                            relation[3] += 3  
                         continue
                 sparql.setQuery("""
                     ASK WHERE { 
@@ -506,38 +450,6 @@ def rank_entities_string_similarity(entities):
                 entity[2]+=(SequenceMatcher(None, entity[3], entity[1][entity[1].rfind('/')+1:]).ratio())*10
                 entity[2]+=(SequenceMatcher(None, entity[3], entity[0]).ratio())*20
     return entities
-            
-            
-
-#try not using first trial
-def relations_improvement_country(entities):
-    # country check
-    relations=[]
-    for entity in entities:
-            sparql = SPARQLWrapper(wikidataSPARQL)
-            sparql.setQuery("""
-                       ASK {?s <http://dbpedia.org/ontology/language> <"""+entity[1]+"""_language>. ?s rdf:type <http://dbpedia.org/ontology/Country>}     
-                    """)
-            sparql.setReturnFormat(JSON)
-            results1 = sparql.query().convert()
-            if results1['boolean']:
-                relations.append(["country","http://dbpedia.org/ontology/country",0,20])    
-    return relations
-
-#try not using first trial
-def relations_entities_country_improvement(terms):
-    # country check
-    for term in terms.split(' '):
-        sparql = SPARQLWrapper(wikidataSPARQL)
-        sparql.setQuery("""
-                   SELECT ?s WHERE { ?s <http://dbpedia.org/ontology/demonym> '"""+term+"""'@en}
-                """)
-        sparql.setReturnFormat(JSON)
-        results1 = sparql.query().convert()
-        if len(results1['results']['bindings'])==0:
-            return ""
-        else:
-            return results1['results']['bindings'][0]['s']['value']
 
 def check_relation_range_type(relation,qType):
     return True
@@ -574,15 +486,12 @@ def split_base_on_s(combinations):
             result.append(comb)
     return result
 
-def process_word_E_long(question):
-    #print(question)
-    #startTime=time.time() 
+def process_word_E_long(question): 
     global count
     k=1
 
     entities=[]
     
-    #question=question[0].lower() + question[1:]
     originalQuestion=question
     question=question.replace("?","")
     question=question.replace(".","")
@@ -623,10 +532,8 @@ def process_word_E_long(question):
     for raw in entities:
         for entity in sorted(raw, reverse=True, key=lambda x: x[2])[:k]:
             results.append(entity)
-   
-    #print("Entities:")
-    #print(entities)
     return [[entity[1],entity[4]] for entity in results]
+
 def process_word_E(question):
     #print(question)
     startTime=time.time() 
@@ -634,7 +541,6 @@ def process_word_E(question):
     k=1
 
     entities=[]
-    #question=question[0].lower() + question[1:]
     question=question.replace("?","")
     question=question.replace(".","")
     question=question.replace("!","")
@@ -719,22 +625,12 @@ def evaluate(raw):
     question=question.replace("?","")
     question=question.replace(".","")
     question=question.replace("!","")
-    #question=question.replace("'s","")
-    #question=question.replace("'","")
     question=question.replace("\\","")
     question=question.replace("#","")
     questionStopWords=stopwords.extract_stop_words_question(question,stopWordsList)
-    # print('questionStopWords: ', questionStopWords)
     combinations=get_question_combinatios(question,questionStopWords)
-    # print('combinations: ',combinations)
-    #combinations=merge_comb_stop_words(combinations,question,questionStopWords)
-    #print(combinations)
     combinations=split_base_on_verb(combinations,originalQuestion)
-    # print('N-gram tilin: ',combinations)
-    #combinations=split_base_on_titles(combinations)
-    #print(combinations)
     combinations=split_base_on_s(combinations)
-    # print("Combos: ",combinations)
     oldCombinations=combinations
     
     for idx,term in enumerate(combinations):
@@ -742,9 +638,7 @@ def evaluate(raw):
             continue
         if term[0].istitle():
             continue;
-        # ontologyResults=searchIndex.ontologySearch(term)
         propertyResults=searchIndex.propertySearch(term)
-        # if len(ontologyResults) == 0 and len(propertyResults) == 0:
         if len(propertyResults) == 0:    
             combinations[idx]=term.capitalize()
             question=question.replace(term,term.capitalize())
@@ -754,11 +648,9 @@ def evaluate(raw):
     combinations=merge_entity_prefix(question,combinations,originalQuestion)
     combinations,compare_found=split_bas_on_comparison(combinations)
     combinations=extract_abbreviation(combinations)
-    # print("Combos: ",combinations)
     i=0
     nationalityFlag=False
     for term in combinations:
-        #print(term)
         properties=[]
         entities_term=[]
         if len(term)==0:
@@ -792,7 +684,6 @@ def evaluate(raw):
     questionRelationsNumber=len(mixedRelations)
     oldEnities=entities
     if (len(mixedRelations)==0 and questionWord.lower()=="when") or compare_found:
-        # mixedRelations.append([["date","http://dbpedia.org/ontology/date",0,20],["date","http://dbpedia.org/property/date",0,20]])
         mixedRelations.append([["time","http://www.wikidata.org/wiki/Property:P569",0,20]])
         compare_found=False
 
@@ -803,8 +694,6 @@ def evaluate(raw):
         
     mixedRelations=mix_list_items(mixedRelations,k)
     entities=mix_list_items_entities(entities,k)
-    # print(entities)
-    # mixedRelations.extend(relations_improvement_country(entities))
     
     if nationalityFlag:
         mixedRelations.append(["country","https://www.wikidata.org/wiki/Property:P17",20])
@@ -817,9 +706,8 @@ def evaluate(raw):
             p_relation=len(intersection)/len(mixedRelations)
             r_relation=len(intersection)/numberSystemRelations
         if relation[relation.rfind('/')+1:] in [tup[1][tup[1].rfind('/')+1:] for tup in mixedRelations]:
-            #p_relation=1/numberSystemRelations
             correctRelations=correctRelations+1
-            #print(raw[0])
+        
         else:
             wrongRelations=wrongRelations+1
             correct=False
@@ -827,7 +715,6 @@ def evaluate(raw):
 
         true_entity = "<http://www.wikidata.org/entity/"+raw[0]+">"
         numberSystemEntities=len(raw[0])
-        # print(true_entity, entities)
         intersection= set(true_entity).intersection([tup[1] for tup in entities])
         if numberSystemEntities!=0 and len(entities)!=0 :
             p_entity=len(intersection)/len(entities)
@@ -878,7 +765,6 @@ def datasets_evaluate(dataset_file):
         pool.join()
     else:
         for question in questions:
-            #print(question[0])
             try:
                 evaluate(question)
             except:
@@ -910,4 +796,3 @@ if __name__ == '__main__':
         evaluate(sys.argv[2])
 
     
-
