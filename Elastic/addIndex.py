@@ -41,17 +41,7 @@ def propertyIndexAdd():
         pool = ThreadPool(10)
         pool.map(addToIndexThread, lines)
         pool.close()
-        pool.join()      
-
-def OntologyIndexAdd():
-    global indexName
-    indexName= "dbontologyindex"
-    with open('../data/dbontologyindex.json',encoding="utf8") as f:
-        lines = f.readlines()
-        pool = ThreadPool(10)
-        pool.map(addToIndexThread, lines)
-        pool.close()
-        pool.join()    
+        pool.join()        
     
 def entitiesIndexAdd():
     global indexName
@@ -62,17 +52,6 @@ def entitiesIndexAdd():
         pool.map(addToIndexThread, lines)
         pool.close()
         pool.join()
-        
-def classesIndexAdd():
-    global indexName
-    indexName = "dbclassindex"
-    with open('../data/dbClassIndex.json',encoding="utf8") as f:
-        lines = f.readlines()
-        pool = ThreadPool(12)
-        pool.map(addToIndexThread, lines)
-        pool.close()
-        pool.join()
-    
     
 
 #if __name__ == '__main__':
