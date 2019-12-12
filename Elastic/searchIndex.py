@@ -1,7 +1,7 @@
 from elasticsearch import Elasticsearch
 
 
-es = Elasticsearch(['https://5e9acbee.ngrok.io/'])
+es = Elasticsearch(['http://node1.research.tib.eu:9200/'])
 docType = "doc"
 
 
@@ -44,20 +44,34 @@ def entitySearch(query):
         
 def propertySearch(query):
     indexName = "wikidatapropertyindex"
-    results=[]
-    elasticResults=es.search(index=indexName, doc_type=docType, body={
-            "query": {
-        "bool": {
-            "must": {
-                "bool" : { "should": [
-                      { "multi_match": { "query": query , "fields": ["label"]  }},
-                      { "multi_match": { "query": query.replace(" ", "") , "fields": ["uri"] , "fuzziness": "AUTO"}} ] }
-            }
+    results = []
+    ###################################################
+    elasticResults = es.search(index=indexName, doc_type=docType, body={
+        "query": {
+            "match": {"label": query}
         }
+        , "size": 10
     }
-            ,"size":10})
+                               )
     for result in elasticResults['hits']['hits']:
-        results.append([result["_source"]["label"],result["_source"]["uri"],result["_score"]*2,0])
+        if result["_source"]["label"].lower() == query.replace(" ", "_").lower():
+            results.append([result["_source"]["label"], result["_source"]["uri"], result["_score"] * 50, 40])
+        else:
+            results.append([result["_source"]["label"], result["_source"]["uri"], result["_score"] * 40, 0])
+
+    ###################################################
+    elasticResults = es.search(index=indexName, doc_type=docType, body={
+        "query": {
+            "fuzzy": {"label": query}
+        }
+        , "size": 5
+    }
+                               )
+    for result in elasticResults['hits']['hits']:
+        if result["_source"]["label"].lower() == query.replace(" ", "_").lower():
+            results.append([result["_source"]["label"], result["_source"]["uri"], result["_score"] * 50, 40])
+        else:
+            results.append([result["_source"]["label"], result["_source"]["uri"], result["_score"] * 25, 0])
     return results
 
 if __name__ == '__main__':

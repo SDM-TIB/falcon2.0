@@ -7,7 +7,7 @@ import evaluation
 
 def open_tapioca_call(text):
     # print(text)
-    text = text.replace('?','')
+    text = text.replace('?', '')
 
     headers = {
         'Accept': 'application/json',
@@ -17,63 +17,74 @@ def open_tapioca_call(text):
 
     data = text.split(" ");
     for s in data:
-        payload=payload+s
-        payload+='+'
-    payload+='%3F'
-    payload=payload.encode("utf-8")
+        payload = payload + s
+        payload += '+'
+    payload += '%3F'
+    payload = payload.encode("utf-8")
     response = requests.request("POST", url, data=payload, headers=headers)
     return response.json()
 
-def evaluate(annotations,raw):
-    correctRelations=0
-    wrongRelations=0
-    correctEntities=0
-    wrongEntities=0
-    p_entity=0
-    r_entity=0
-    p_relation=0
-    r_relation=0
+
+def evaluate(annotations, raw):
+    correctRelations = 0
+    wrongRelations = 0
+    correctEntities = 0
+    wrongEntities = 0
+    p_entity = 0
+    r_entity = 0
+    p_relation = 0
+    r_relation = 0
     entities = []
-    
-    for labels in annotations:
-        # print(labels)
-        if len(labels)!=0:
-            qid = labels['best_qid']
-            entities = []
-            if qid != None:
-                entities.append("<http://www.wikidata.org/wiki/entity:"+str(qid)+">")
 
-    true_entity = "<http://www.wikidata.org/entity/"+raw[0]+">"
-    numberSystemEntities=len(raw[0])
-        # print(true_entity, entities)
-    intersection= set(true_entity).intersection([i for i in entities])
-    if len(entities)!=0:
-        p_entity=len(intersection)/len(entities)
-    r_entity=len(intersection)/numberSystemEntities
-    if true_entity in [i for i in entities]:
-        correctEntities=correctEntities+1
-    else:
-        wrongEntities=wrongEntities+1
-        correct=False
+    for annotation in annotations:
+        if annotation['best_qid'] is not None:
+            entities.append(annotation['best_qid'])
+        else:
+            if len(annotation['tags']) != 0:
+                tags = sorted(annotation['tags'], key=lambda i: i['rank'], reverse=True)
+                entities.append(tags[0]['id'])
 
-    return [correctEntities,wrongEntities]
+    true_entity = raw[1]
+    numberSystemEntities = len(raw[1])
+    # print(true_entity, entities)
+    for e in true_entity:
+        if e in entities:
+            correctEntities = correctEntities + 1
+        else:
+            wrongEntities = wrongEntities + 1
+    intersection = set(true_entity).intersection(entities)
+    if len(entities) != 0:
+        p_entity = len(intersection) / len(entities)
+    r_entity = len(intersection) / numberSystemEntities
+
+
+    return [correctEntities, wrongEntities, p_entity, r_entity, entities]
+
 
 if __name__ == "__main__":
-    f = open("simple_main.txt", 'r')
-    rows=f.readlines()
+
+    result = []
+    result.append(["Question", "Gold Standard", "System", "P", "R"])
+    questions = evaluation.read_lcquad_2()
     correct = 0
     wrong = 0
-    for q in rows:
-        q = q.rstrip('\n')
-        line = q.split("\t")
-        if len(line) != 0: 
-            output = open_tapioca_call(line[-1])
-            # print(output)
-            [c,w] = evaluate(output['annotations'],line)
-            correct+=c
-            wrong+=w
-            print(c)
-    print("total correct entities: ",correct)
+    i = 0
+    for question in questions:
+        output = open_tapioca_call(question[0])
+        c, w, p, r, entities = evaluate(output['annotations'], question)
+        correct += c
+        wrong += w
+        # print(c)
+        result.append([question[0], question[1], entities, p, r])
+        print(str(i) + "#####" + str((correct * 100) / (correct + wrong)))
+        i = i + 1
+    print("total correct entities: ", correct)
     print("Total wrong entities: ", wrong)
-    f.close()
- 
+    print("P:")
+    print((correct * 100) / (correct + wrong))
+    with open('../results_lcquad2_entities_OpenTapioca_without_tellme.csv', mode='w', newline='', encoding='utf-8') as results_file:
+        writer = csv.writer(results_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+        writer.writerows(result)
+
+
+
