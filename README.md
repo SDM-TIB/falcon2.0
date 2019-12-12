@@ -14,9 +14,9 @@ To begin with, install the libraries stated in the requiremnts.txt file as follo
 pip install -r requirements.txt
 ```
 The code for FALCON tool has three main aspects: elastic search, the algorithm and evaluation. 
-## Elastic Search
+## Elastic Search and Background Knowlege
 Before we begin working with the Wikidata Dump, we first need to connect to an elasticsearch endpoint, and a Wikidata endpoint. The elasticsearch endpoint is used to interact with our cluster through the Elasticsearch API. 
-The ElasticSearch dump for Falcon 2.0 can be downloaded from this link:
+The ElasticSearch dump (Also knowns as R2: Background Knowledge) for Falcon 2.0 can be downloaded from this link:
 https://doi.org/10.6084/m9.figshare.11362883
 
 To import the Elasticsearch dump please use elasticdump and execute the following commands:
