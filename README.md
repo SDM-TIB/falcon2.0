@@ -7,6 +7,7 @@ curl --header "Content-Type: application/json" \
   --data '{"text":"Who painted The Storm on the Sea of Galilee?"}' \
   https://labs.tib.eu/falcon/falcon2/api?mode=long
 ```
+This is the first resource of this repository. The second resource is described in the ElasticSearch section.
 # Implementation
 To begin with, install the libraries stated in the requiremnts.txt file as follows:
 ```
