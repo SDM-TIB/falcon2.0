@@ -1,6 +1,6 @@
 # FALCON 2.0
 
-Falcon 2.0 is a rule-based entity and relation linking tool over Wikidata. It leverages fundamental principles of the English morphology (e.g., N-Gram tiling and N-Gramsplitting) to accurately map entities and relations in short texts to resources in  Wikidata. Falcon is available as Web API and can be queried using CURL: 
+Falcon 2.0 is a entity and relation linking tool over Wikidata. It leverages fundamental principles of the English morphology (e.g., N-Gram tiling and N-Gramsplitting) to accurately map entities and relations in short texts to resources in  Wikidata. Falcon is available as Web API and can be queried using CURL: 
 ```
 curl --header "Content-Type: application/json" \
   --request POST \
@@ -63,7 +63,7 @@ We empirically evaluated Falcon 2.0 on a question answering dataset tailored for
 We chose OpenTapioca as our baseline for entity and relation linking. OpenTapioca is available as web API and can provide Wikidata URIs for relations and entities. We are not aware of any other tool/approach that provides Wikidata entity linking.
 
 ### Results on SimpleQuestions dataset
-SimpleQuestion dataset contains 6505 test questions which are answerable using Wikidata as underlying Knowledge Graph. We observe that for baseline, the values surprisingly are approximately zero for precision, recall, and F-score. We analysed the source of errors,  and  found  that  out  of  6505  questions,  only  246  have  entity  labels  in uppercase  letters.  Opentapioca  can  not  recognise  entities  and  link  any  entity written in lowercase letters. For remaining 246 questions, only 70 gives the correct answer for OpenTapioca. On the other hand, Falcon 2.0 reports F-score 0.63 on the same dataset.
+SimpleQuestion dataset contains 6505 test questions which are answerable using Wikidata as underlying Knowledge Graph. We observe that for baseline, the values surprisingly are approximately zero for precision, recall, and F-score. We analysed the source of errors,  and  found  that  out  of  6505  questions,  only  246  have  entity  labels  in uppercase  letters.  Opentapioca  can  not  recognise  entities  and  link  any  entity written in lowercase letters. For remaining 246 questions, only 70 gives the correct answer for OpenTapioca (https://opentapioca.org/). On the other hand, Falcon 2.0 reports F-score 0.63 on the same dataset.
 The code for opentapioca evaluation on Simplequestions can be found in evaluation/opentapioca.py. We implement a wrapper for Opentapioca API to send requests and retrive data quickly. The following function refers to the wrapper:
 ```
 def open_tapioca_call(text): ...
