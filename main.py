@@ -16,20 +16,15 @@ from SPARQLWrapper import SPARQLWrapper, JSON, POST
 from multiprocessing.pool import ThreadPool
 from difflib import SequenceMatcher
 
-<<<<<<< HEAD
+
 nlp = spacy.load('en_core_web_sm')
 #wikidataSPARQL="https://17d140f2.ngrok.io/sparql"
 wikidataSPARQL="http://node3.research.tib.eu:4010/sparql"
 
 stopWordsList=wiki_stopwords.getStopWords()
 comparsion_words=wiki_stopwords.getComparisonWords()
-=======
-nlp = spacy.load('en')
-wikidataSPARQL="https://17d140f2.ngrok.io/sparql"
 evaluation = False
-stopWordsList=stopwords.getStopWords()
-comparsion_words=stopwords.getComparisonWords()
->>>>>>> e94063cbe744fd51ad331a97f4401fb267b896df
+
 
 def get_verbs(question):
     verbs=[]
