@@ -53,7 +53,7 @@ def propertySearch(query): ...
 ```
 
 ## Algorithm
-main.py contains the code for automatic entity and relation linking to resources in Wikidata using rule-based learning. Falcon 2.0 uses the same approach for Wikidata knowledge graph as used in Falcon for DBpedia Spotlight. The rules that represent the English morphology are maintained in a catalog; a forward chaining inference process is performed on top of the catalog during the tasks of extractionand linking. Falcon 2.0 also comprises several modules that identify and link entities and relations to Wikidata knowledge graph. These modules implement POS Tagging, Tokenization & Compounding, N-Gram Tiling, Candidate  ListGeneration, Matching & Ranking, Query Classifier, and N-Gram Splitting and are reused from the implementation of Falcon. 
+main.py contains the code for automatic entity and relation linking to resources in Wikidata using rule-based learning. Falcon 2.0 uses the same approach for Wikidata knowledge graph as used in Falcon for DBpedia(https://labs.tib.eu/falcon/). The rules that represent the English morphology are maintained in a catalog; a forward chaining inference process is performed on top of the catalog during the tasks of extractionand linking. Falcon 2.0 also comprises several modules that identify and link entities and relations to Wikidata knowledge graph. These modules implement POS Tagging, Tokenization & Compounding, N-Gram Tiling, Candidate  ListGeneration, Matching & Ranking, Query Classifier, and N-Gram Splitting and are reused from the implementation of Falcon. 
 
 ## Evaluation
 
@@ -76,7 +76,7 @@ We empirically evaluated Falcon 2.0 on a question answering dataset tailored for
 We chose OpenTapioca as our baseline for entity and relation linking. OpenTapioca is available as web API and can provide Wikidata URIs for relations and entities. We are not aware of any other tool/approach that provides Wikidata entity linking.
 
 ### Results on SimpleQuestions dataset
-SimpleQuestion dataset contains 6505 test questions which are answerable using Wikidata as underlying Knowledge Graph. We observe that for baseline, the values surprisingly are approximately zero for precision, recall, and F-score. We analysed the source of errors,  and  found  that  out  of  6505  questions,  only  246  have  entity  labels  in uppercase  letters.  Opentapioca  can  not  recognise  entities  and  link  any  entity written in lowercase letters. For remaining 246 questions, only 70 gives the correct answer for OpenTapioca (https://opentapioca.org/). On the other hand, Falcon 2.0 reports F-score 0.63 on the same dataset.
+[SimpleQuestion dataset ](https://github.com/askplatypus/wikidata-simplequestions)contains 6505 test questions which are answerable using Wikidata as underlying Knowledge Graph. We observe that for baseline, the values surprisingly are approximately zero for precision, recall, and F-score. We analysed the source of errors,  and  found  that  out  of  6505  questions,  only  246  have  entity  labels  in uppercase  letters.  Opentapioca  can  not  recognise  entities  and  link  any  entity written in lowercase letters. For remaining 246 questions, only 70 gives the correct answer for OpenTapioca (https://opentapioca.org/). On the other hand, Falcon 2.0 reports F-score 0.63 on the same dataset.
 The code for opentapioca evaluation on Simplequestions can be found in evaluation/opentapioca.py. We implement a wrapper for Opentapioca API to send requests and retrive data quickly. The following function refers to the wrapper:
 ```
 def open_tapioca_call(text): ...
@@ -86,4 +86,4 @@ Opentapioca returns a JSON object with annotations for mentions in the text. It 
 def evaluate(annotations, raw): ...
 ```
 ### Results on LC-Quad 2.0
-Given the limitations of OpenTapioca on Simplequestions dataset, we randomly selected 1000 questions from LC-QuAD 2.0 to test the robustness of our tool on complex questions. OpenTapioca reports F-score 0.25 against Falcon 2.0 with F-score 0.68.
+Given the limitations of OpenTapioca on Simplequestions dataset, we randomly selected 1000 questions from [LC-QuAD 2.0](https://figshare.com/articles/test_set_for_lcquad_2_0/8479052) to test the robustness of our tool on complex questions. OpenTapioca reports F-score 0.25 against Falcon 2.0 with F-score 0.68.
