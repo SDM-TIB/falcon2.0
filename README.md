@@ -45,6 +45,8 @@ def propertySearch(query): ...
 main.py contains the code for automatic entity and relation linking to resources in Wikidata using rule-based learning. Falcon 2.0 uses the same approach for Wikidata knowledge graph as used in Falcon for DBpedia Spotlight. The rules that represent the English morphology are maintained in a catalog; a forward chaining inference process is performed on top of the catalog during the tasks of extractionand linking. Falcon 2.0 also comprises several modules that identify and link entities and relations to Wikidata knowledge graph. These modules implement POS Tagging, Tokenization & Compounding, N-Gram Tiling, Candidate  ListGeneration, Matching & Ranking, Query Classifier, and N-Gram Splitting and are reused from the implementation of Falcon. 
 
 ## Evaluation
+
+### Usage
 You may choose to run the tool for a single query or evaluate it on a dataset.
 To run the tool on a single query (short text):
 ```
