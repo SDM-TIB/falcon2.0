@@ -1,12 +1,12 @@
 # FALCON 2.0
 
 Falcon 2.0 is a rule-based entity and relation linking tool over Wikidata. It leverages fundamental principles of the English morphology (e.g., N-Gram tiling and N-Gramsplitting) to accurately map entities and relations in short texts to resources in  Wikidata. Falcon is available as Web API and can be queried using CURL: 
-
+```
 curl --header "Content-Type: application/json" \
   --request POST \
   --data '{"text":"Who painted The Storm on the Sea of Galilee?"}' \
   https://labs.tib.eu/falcon/falcon2/api?mode=long
-
+```
 # Implementation
 To begin with, install the libraries stated in the requiremnts.txt file as follows:
 ```
