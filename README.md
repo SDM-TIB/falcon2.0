@@ -16,7 +16,7 @@ The code for FALCON tool has three main aspects: elastic search, the algorithm a
 ## Elastic Search
 Before we begin working with the Wikidata Dump, we first need to connect to an elasticsearch endpoint, and a Wikidata endpoint. The elasticsearch endpoint is used to interact with our cluster through the Elasticsearch API. 
 The ElasticSearch dump for Falcon 2.0 can be downloaded from this link:
-https://figshare.com/articles/Falcon_2_0_background_knowledge_-_Wikidata_labels_alignments/11362883
+https://doi.org/10.6084/m9.figshare.11362883
 
 To import the Elasticsearch dump please use elasticdump and execute the following commands:
 ```
