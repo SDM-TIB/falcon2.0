@@ -1,13 +1,26 @@
 # FALCON 2.0
 
-Falcon 2.0 is a entity and relation linking tool over Wikidata. It leverages fundamental principles of the English morphology (e.g., N-Gram tiling and N-Gramsplitting) to accurately map entities and relations in short texts to resources in  Wikidata. Falcon is available as Web API and can be queried using CURL: 
+Falcon 2.0 (read paper at: [Falcon2.0 ](https://arxiv.org/abs/1912.11270))is a entity and relation linking tool over Wikidata. It leverages fundamental principles of the English morphology (e.g., N-Gram tiling and N-Gramsplitting) to accurately map entities and relations in short texts to resources in  Wikidata. Falcon is available as Web API and can be queried using CURL: 
 ```
 curl --header "Content-Type: application/json" \
   --request POST \
   --data '{"text":"Who painted The Storm on the Sea of Galilee?"}' \
   https://labs.tib.eu/falcon/falcon2/api?mode=long
 ```
-This is the first resource of this repository. The second resource is described in the ElasticSearch section.
+This is the first resource of this repository. The second resource is described in the ElasticSearch section. 
+
+### Please cite Our paper if you use Falcon 2.0
+```
+@misc{sakor2019falcon,
+    title={FALCON 2.0: An Entity and Relation Linking framework over Wikidata},
+    author={Ahmad Sakor and Kuldeep Singh and Anery Patel and Maria-Esther Vidal},
+    year={2019},
+    eprint={1912.11270},
+    archivePrefix={arXiv},
+    primaryClass={cs.CL}
+}
+```
+
 # Implementation
 To begin with, install the libraries stated in the requiremnts.txt file as follows:
 ```
@@ -88,3 +101,4 @@ def evaluate(annotations, raw): ...
 ```
 ### Results on LC-Quad 2.0
 Given the limitations of OpenTapioca on Simplequestions dataset, we randomly selected 1000 questions from [LC-QuAD 2.0](https://figshare.com/articles/test_set_for_lcquad_2_0/8479052) to test the robustness of our tool on complex questions. OpenTapioca reports F-score 0.25 against Falcon 2.0 with F-score 0.68.
+
