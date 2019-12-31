@@ -12,7 +12,7 @@ This is the first resource of this repository. The second resource is described 
 ### Please cite Our paper if you use Falcon 2.0
 ```
 @misc{sakor2019falcon,
-    title={FALCON 2.0: An Entity and Relation Linking framework over Wikidata},
+    title={FALCON 2.0: An Entity and Relation Linking Tool over Wikidata},
     author={Ahmad Sakor and Kuldeep Singh and Anery Patel and Maria-Esther Vidal},
     year={2019},
     eprint={1912.11270},
