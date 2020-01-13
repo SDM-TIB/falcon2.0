@@ -595,8 +595,6 @@ def split_bas_on_comparison(combinations):
 def evaluate(raw):
 <<<<<<< HEAD
     evaluation=False
-=======
->>>>>>> e94063cbe744fd51ad331a97f4401fb267b896df
     startTime=time.time()
     oneQuestion=False
     global correctRelations
@@ -629,17 +627,14 @@ def evaluate(raw):
     question=question.replace("!","")
     question=question.replace("\\","")
     question=question.replace("#","")
-<<<<<<< HEAD
+
     questionStopWords=wiki_stopwords.extract_stop_words_question(question,stopWordsList)
     # print('questionStopWords: ', questionStopWords)
     combinations=get_question_combinatios(question,questionStopWords)
     # print('combinations: ',combinations)
     combinations=merge_comb_stop_words(combinations,question,questionStopWords)
     #print(combinations)
-=======
-    questionStopWords=stopwords.extract_stop_words_question(question,stopWordsList)
-    combinations=get_question_combinatios(question,questionStopWords)
->>>>>>> e94063cbe744fd51ad331a97f4401fb267b896df
+
     combinations=split_base_on_verb(combinations,originalQuestion)
     combinations=split_base_on_s(combinations)
     oldCombinations=combinations
@@ -649,13 +644,9 @@ def evaluate(raw):
             continue
         if term[0].istitle():
             continue;
-<<<<<<< HEAD
-        # ontologyResults=wiki_search_elastic.ontologySearch(term)
-        propertyResults=wiki_search_elastic.propertySearch(term)
-        # if len(ontologyResults) == 0 and len(propertyResults) == 0:
-=======
+
         propertyResults=searchIndex.propertySearch(term)
->>>>>>> e94063cbe744fd51ad331a97f4401fb267b896df
+
         if len(propertyResults) == 0:    
             combinations[idx]=term.capitalize()
             question=question.replace(term,term.capitalize())
@@ -724,12 +715,8 @@ def evaluate(raw):
         if numberSystemRelations!=0 and len(mixedRelations)!=0:
             p_relation=len(intersection)/len(mixedRelations)
             r_relation=len(intersection)/numberSystemRelations
-<<<<<<< HEAD
-        if prop[prop.rfind(':')+1:-1] in [tup[1][tup[1].rfind('/')+1:-1] for tup in mixedRelations]:
-            #p_relation=1/numberSystemRelations
-=======
+
         if relation[relation.rfind('/')+1:] in [tup[1][tup[1].rfind('/')+1:] for tup in mixedRelations]:
->>>>>>> e94063cbe744fd51ad331a97f4401fb267b896df
             correctRelations=correctRelations+1
         
         else:
@@ -737,7 +724,7 @@ def evaluate(raw):
             correct=False
             global questions_labels
 
-<<<<<<< HEAD
+
         true_entity=[]
         for e in raw[1]:
             true_entity.append(e)
@@ -745,11 +732,10 @@ def evaluate(raw):
         numberSystemEntities=len(raw[1])
         # print(true_entity, entities)
         intersection= set(true_entity).intersection([tup[1][tup[1].rfind('/')+1:-1] for tup in entities])
-=======
+
         true_entity = "<http://www.wikidata.org/entity/"+raw[0]+">"
         numberSystemEntities=len(raw[0])
-        intersection= set(true_entity).intersection([tup[1] for tup in entities])
->>>>>>> e94063cbe744fd51ad331a97f4401fb267b896df
+
         if numberSystemEntities!=0 and len(entities)!=0 :
             p_entity=len(intersection)/len(entities)
             r_entity=len(intersection)/numberSystemEntities
@@ -774,13 +760,8 @@ def evaluate(raw):
     return raw
 
 
-<<<<<<< HEAD
-def datasets_evaluate():
-    threading=False
-=======
 def datasets_evaluate(dataset_file):
     threading=True
->>>>>>> e94063cbe744fd51ad331a97f4401fb267b896df
     k=1
     kMax=10
     p_entity=0
@@ -797,18 +778,16 @@ def datasets_evaluate(dataset_file):
     startQ=0
     endQ=5000
     errors=0
-<<<<<<< HEAD
     results=[]
     p_e=0
     p_r=0
 
-    questions=read_dataset('datasets/simplequestions.txt')
-    #questions = evaluation.read_lcquad_2()
-=======
+    #questions=read_dataset('datasets/simplequestions.txt')
+    
     
     filepath = 'datasets/'+dataset_file
     questions=read_dataset(filepath)
->>>>>>> e94063cbe744fd51ad331a97f4401fb267b896df
+
     
     if threading:
         pool = ThreadPool(12)
@@ -850,18 +829,8 @@ def datasets_evaluate(dataset_file):
     #y=[question[4] for question in questions]
 
 if __name__ == '__main__':
-<<<<<<< HEAD
     #datasets_evaluate()
-    #print(evaluate(['What is the total list of records discharged by Jerry Lee Lewis?']))
-    print("hi")
     process_text_E_R('What is the operating income for Qantas?')
-=======
-    if sys.argv[1] == '--d'
-        evaluation = True
-        datasets_evaluate(sys.argv[2])
-    else:
-        evaluation = False
-        evaluate(sys.argv[2])
->>>>>>> e94063cbe744fd51ad331a97f4401fb267b896df
+
 
     
