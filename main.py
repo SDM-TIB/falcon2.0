@@ -469,9 +469,8 @@ def split_base_on_s(combinations):
             result.append(comb)
     return result
 
-def process_word_E_long(question): 
+def process_word_E_long(question, k=1): 
     global count
-    k=5
 
     entities=[]
     
@@ -517,11 +516,10 @@ def process_word_E_long(question):
             results.append(entity)
     return [[entity[1],entity[4]] for entity in results]
 
-def process_word_E(question):
+def process_word_E(question,k=1):
     #print(question)
     startTime=time.time() 
     global count
-    k=5
 
     entities=[]
     question=question.replace("?","")
@@ -545,7 +543,7 @@ def process_word_E(question):
     return [[entity[1],entity[2]] for entity in entities]
 
 def process_text_E_R(question,k=1):
-    raw=evaluate([question])
+    raw=evaluate([question],k)
     #time=raw[1]
     #print(raw)
     question=question.replace("?","")
@@ -591,7 +589,7 @@ def split_bas_on_comparison(combinations):
     return new_comb,compare_found
             
 
-def evaluate(raw):
+def evaluate(raw,k):
 <<<<<<< HEAD
     evaluation=False
     startTime=time.time()
@@ -610,7 +608,6 @@ def evaluate(raw):
     r_entity=0
     p_relation=0
     r_relation=0
-    k=5
     correct=True
     questionRelationsNumber=0
     entities=[]
@@ -829,7 +826,7 @@ def datasets_evaluate(dataset_file):
 
 if __name__ == '__main__':
     #datasets_evaluate()
-    process_text_E_R('What is the operating income for Qantas?')
+    process_text_E_R('What is the operating income for Qantas?', 5)
 
 
     
