@@ -471,7 +471,7 @@ def split_base_on_s(combinations):
 
 def process_word_E_long(question): 
     global count
-    k=1
+    k=5
 
     entities=[]
     
@@ -521,7 +521,7 @@ def process_word_E(question):
     #print(question)
     startTime=time.time() 
     global count
-    k=1
+    k=5
 
     entities=[]
     question=question.replace("?","")
@@ -610,7 +610,7 @@ def evaluate(raw):
     r_entity=0
     p_relation=0
     r_relation=0
-    k=1
+    k=5
     correct=True
     questionRelationsNumber=0
     entities=[]
