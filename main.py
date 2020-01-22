@@ -18,7 +18,6 @@ from difflib import SequenceMatcher
 
 
 nlp = spacy.load('en_core_web_sm')
-#wikidataSPARQL="https://17d140f2.ngrok.io/sparql"
 wikidataSPARQL="http://node3.research.tib.eu:4010/sparql"
 
 stopWordsList=wiki_stopwords.getStopWords()
