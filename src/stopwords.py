@@ -19,6 +19,8 @@ def extract_stop_words_question(question,stopWordsList):
             stopWords.append(word)
     return stopWords
 
+
+
 def getComparisonWords():
     stopWords=[]
     with open('./data/comparsion_words.txt',encoding="utf8") as f:

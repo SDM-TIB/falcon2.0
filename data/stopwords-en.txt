@@ -525,7 +525,6 @@ jo
 join
 jp
 just
-k
 ke
 keep
 keeps

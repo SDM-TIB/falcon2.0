@@ -23,5 +23,11 @@ def read_dataset(filename):
 	f.close()
 	return ans
 
+def read_test_set():
+    data = json.load(io.open('../datasets/webqsp.test.entities.with_classes.json', encoding='utf-8')) 
+    questions=[[question['utterance'],question['entities']] for question in data]
+    return questions
+
+
 if __name__== '__main__':
 	read_dataset('simplequestions.txt')

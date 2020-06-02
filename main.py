@@ -10,7 +10,7 @@ import statistics
 
 from src import stopwords as wiki_stopwords
 from Elastic import searchIndex as wiki_search_elastic
-#from falcon2.evaluation import evaluation as wiki_evaluation
+from evaluation import evaluation as wiki_evaluation
 #from evaluateFalcon2 import read_dataset
 from SPARQLWrapper import SPARQLWrapper, JSON, POST
 from multiprocessing.pool import ThreadPool
@@ -30,7 +30,7 @@ def get_verbs(question):
     verbs=[]
     text = nlp(question)
     for token in text:
-        if token.pos_=="VERB":
+        if token.pos_=="VERB" or token.dep_=="ROOT":
             verbs.append(token.text)
     return verbs
 
@@ -102,7 +102,7 @@ def split_base_on_titles(combinations):
 def word_is_verb(word,question):
     text = nlp(question)
     for token in text:
-        if token.text==word and token.pos_=="VERB":
+        if token.text==word and (token.pos_=="VERB" or token.dep_ == "ROOT"):
             return True
     return False
 
@@ -592,9 +592,51 @@ def split_bas_on_comparison(combinations):
     return new_comb,compare_found
             
 
+def check_entities_in_text(text,term):
+    doc = nlp(text)
+    if len(doc.ents)>0:       
+        for ent in doc.ents:
+            if ent.text==term or ent.text in term:
+                return True
+
+    
+def extract_stop_words_question(text):
+    stopwords=[]
+    doc = nlp(text)
+    for token in doc:
+        if token.is_stop:
+            stopwords.append((token.text))
+
+    return stopwords
+
+
+def upper_all_entities(combinations,text):
+    doc = nlp(text)
+    relations=[]
+    final_combinations=[]
+    for token in doc:
+        if  (not token.is_stop) and ( (token.dep_=="compound" and token.pos_!="PROPN") or token.pos_=="VERB" or token.dep_ == "ROOT"):
+            relations.append(token.text)
+    for comb in combinations:
+        if len(relations)==0:
+            if comb.capitalize() not in final_combinations:
+                final_combinations.append(comb.capitalize())
+        for relation in relations:
+            if relation in comb:
+                if comb.lower() not in [x.lower() for x in final_combinations]:
+                    final_combinations.append(comb.lower())
+                    break 
+        if comb.lower() not in [x.lower() for x in final_combinations]:
+            final_combinations.append(comb.capitalize())
+    return final_combinations
+
+
+
+        
+
 def evaluate(raw):
-<<<<<<< HEAD
-    evaluation=False
+    evaluation=True
+    relations_flag=False
     startTime=time.time()
     oneQuestion=False
     global correctRelations
@@ -628,7 +670,7 @@ def evaluate(raw):
     question=question.replace("\\","")
     question=question.replace("#","")
 
-    questionStopWords=wiki_stopwords.extract_stop_words_question(question,stopWordsList)
+    questionStopWords=extract_stop_words_question(question)
     # print('questionStopWords: ', questionStopWords)
     combinations=get_question_combinatios(question,questionStopWords)
     # print('combinations: ',combinations)
@@ -645,7 +687,7 @@ def evaluate(raw):
         if term[0].istitle():
             continue;
 
-        propertyResults=searchIndex.propertySearch(term)
+        propertyResults=wiki_search_elastic.propertySearch(term)
 
         if len(propertyResults) == 0:    
             combinations[idx]=term.capitalize()
@@ -656,6 +698,7 @@ def evaluate(raw):
     combinations=merge_entity_prefix(question,combinations,originalQuestion)
     combinations,compare_found=split_bas_on_comparison(combinations)
     combinations=extract_abbreviation(combinations)
+    combinations=upper_all_entities(combinations,originalQuestion)
     i=0
     nationalityFlag=False
     for term in combinations:
@@ -663,8 +706,11 @@ def evaluate(raw):
         entities_term=[]
         if len(term)==0:
             continue
+
+        if check_entities_in_text(originalQuestion,term):
+            term=term.capitalize()
         
-        if (not word_is_verb(term,originalQuestion)) and (term[0].istitle() or len(term.split(' ')) > 2   or (any(x.isupper() for x in term))) :
+        if any(x.isupper() for x in term) :
             # print(term," ", i)
             entityResults=wiki_search_elastic.entitySearch(term)
             if " and " in term:
@@ -692,7 +738,7 @@ def evaluate(raw):
     questionRelationsNumber=len(mixedRelations)
     oldEnities=entities
     if (len(mixedRelations)==0 and questionWord.lower()=="when") or compare_found:
-        mixedRelations.append([["time","http://www.wikidata.org/wiki/Property:P569",0,20]])
+        mixedRelations.append([["time","<http://www.wikidata.org/wiki/Property:P569>",0,20,"when"]])
         compare_found=False
 
     for i in range(len(mixedRelations)):
@@ -704,25 +750,26 @@ def evaluate(raw):
     entities=mix_list_items_entities(entities,k)
     
     if nationalityFlag:
-        mixedRelations.append(["country","https://www.wikidata.org/wiki/Property:P17",20])
+        mixedRelations.append(["country","<https://www.wikidata.org/wiki/Property:P17>",20,"country"])
 
     if evaluation:
-        prop = "<http://www.wikidata.org/wiki/Property:"+raw[2][0]+">"
-        #prop =raw[2]
-        #numberSystemRelations=len(raw[1])
-        numberSystemRelations = 1
-        intersection= set(raw[2]).intersection([tup[1][tup[1].rfind('/')+1:-1] for tup in mixedRelations])
-        if numberSystemRelations!=0 and len(mixedRelations)!=0:
-            p_relation=len(intersection)/len(mixedRelations)
-            r_relation=len(intersection)/numberSystemRelations
+        if relations_flag:
+            prop = "<http://www.wikidata.org/wiki/Property:"+raw[2][0]+">"
+            #prop =raw[2]
+            #numberSystemRelations=len(raw[1])
+            numberSystemRelations = 1
+            intersection= set(raw[2]).intersection([tup[1][tup[1].rfind('/')+1:-1] for tup in mixedRelations])
+            if numberSystemRelations!=0 and len(mixedRelations)!=0:
+                p_relation=len(intersection)/len(mixedRelations)
+                r_relation=len(intersection)/numberSystemRelations
 
-        if relation[relation.rfind('/')+1:] in [tup[1][tup[1].rfind('/')+1:] for tup in mixedRelations]:
-            correctRelations=correctRelations+1
-        
-        else:
-            wrongRelations=wrongRelations+1
-            correct=False
-            global questions_labels
+            if relation[relation.rfind('/')+1:] in [tup[1][tup[1].rfind('/')+1:] for tup in mixedRelations]:
+                correctRelations=correctRelations+1
+
+            else:
+                wrongRelations=wrongRelations+1
+                correct=False
+                global questions_labels
 
 
         true_entity=[]
@@ -733,8 +780,8 @@ def evaluate(raw):
         # print(true_entity, entities)
         intersection= set(true_entity).intersection([tup[1][tup[1].rfind('/')+1:-1] for tup in entities])
 
-        true_entity = "<http://www.wikidata.org/entity/"+raw[0]+">"
-        numberSystemEntities=len(raw[0])
+        #true_entity = "<http://www.wikidata.org/entity/"+raw[0]+">"
+        numberSystemEntities=len(raw[1])
 
         if numberSystemEntities!=0 and len(entities)!=0 :
             p_entity=len(intersection)/len(entities)
@@ -753,15 +800,16 @@ def evaluate(raw):
     ############        
     raw.append([[tup[1],tup[4]] for tup in mixedRelations])        
     raw.append([[tup[1],tup[4]] for tup in entities])
-    #raw.append(p_entity)
-    #raw.append(r_entity)
+    raw.append(p_entity)
+    raw.append(r_entity)
     #raw.append(p_relation)
     #raw.append(r_relation)
     return raw
 
 
-def datasets_evaluate(dataset_file):
-    threading=True
+def datasets_evaluate():
+    threading=False
+    
     k=1
     kMax=10
     p_entity=0
@@ -785,8 +833,8 @@ def datasets_evaluate(dataset_file):
     #questions=read_dataset('datasets/simplequestions.txt')
     
     
-    filepath = 'datasets/'+dataset_file
-    questions=read_dataset(filepath)
+    #filepath = 'datasets/'+dataset_file
+    questions=wiki_evaluation.read_test_set()
 
     
     if threading:
@@ -796,26 +844,26 @@ def datasets_evaluate(dataset_file):
         pool.join()
     else:
         for question in questions:
-            try:
-                single_result=evaluate(question)
-                print(count)
-                count=count+1
-                print( "#####" + str((correctRelations * 100) / (correctRelations + wrongRelations)))
-                print("#####" + str((correctEntities * 100) / (correctEntities + wrongEntities)))
-                results.append(single_result)
-                
-            except:
+            #try:
+            single_result=evaluate(question)
+            print(count)
+            count=count+1
+            #print( "#####" + str((correctRelations * 100) / (correctRelations + wrongRelations)))
+            print("#####" + str((correctEntities * 100) / (correctEntities + wrongEntities)))
+            results.append(single_result)
+            
+            '''except:
                 errors+=1
-                print(errors)
-                continue
+                print("error"+str(errors))
+                continue'''
      
         
-    with open('results_simple_entities_FALCON.csv', mode='w', newline='', encoding='utf-8') as results_file:
+    with open('datasets/results/FALCON_webqsp.csv', mode='w', newline='', encoding='utf-8') as results_file:
         writer = csv.writer(results_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
         writer.writerows(results)    
-    print("Correct Relations:",correctRelations)
-    print("Relations:")
-    print((correctRelations*100)/(correctRelations+wrongRelations))
+    #print("Correct Relations:",correctRelations)
+    #print("Relations:")
+    #print((correctRelations*100)/(correctRelations+wrongRelations))
     print("Correct Entities:",correctEntities)
     print("Entities:")
     print((correctEntities*100)/(correctEntities+wrongEntities))
@@ -829,8 +877,8 @@ def datasets_evaluate(dataset_file):
     #y=[question[4] for question in questions]
 
 if __name__ == '__main__':
-    #datasets_evaluate()
-    process_text_E_R('What is the operating income for Qantas?')
+    datasets_evaluate()
+    #process_text_E_R('What is the operating income for Qantas?')
 
 
     

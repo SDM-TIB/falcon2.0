@@ -47,3 +47,10 @@ def read_lcquad_2():
     questions=process_lcquad_2(data)
     return questions
     
+
+
+
+def read_test_set():
+    data = json.load(io.open('./datasets/webqsp.test.entities.with_classes.json', encoding='utf-8')) 
+    questions=[[question['utterance'],[x   for x in question['entities'] if x is not None]] for question in data]
+    return questions
