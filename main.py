@@ -28,10 +28,20 @@ evaluation = False
 
 def get_verbs(question):
     verbs=[]
+    entities=[]
     text = nlp(question)
+    entities=[x.text for x in text.ents]
     for token in text:
-        if token.pos_=="VERB" or token.dep_=="ROOT":
-            verbs.append(token.text)
+        if (token.pos_=="VERB" or token.dep_=="ROOT") and not token.is_stop:
+            isEntity=False
+            for ent in entities: 
+                if token.text in ent:
+                    ent_list=ent.split(' ')
+                    if ent_list.index(token.text)!= len(ent_list)-1:
+                        isEntity=True
+                        break
+            if not isEntity:
+                verbs.append(token.text)
     return verbs
 
 def split_base_on_verb(combinations,question):
@@ -149,6 +159,11 @@ def get_question_combinatios(question,questionStopWords):
 
 def check_only_stopwords_exist(question,comb1,comb2,questionStopWords):
     check=question[question.find(comb1)+len(comb1):question.rfind(comb2)]
+    doc = nlp(question)
+    verbs=[]
+    for token in doc:
+        if token.tag_ == "VBD":
+            verbs.append(token.text)
     if check==" ":
         return True
     flag=True
@@ -158,6 +173,9 @@ def check_only_stopwords_exist(question,comb1,comb2,questionStopWords):
             flag=False
             break
         if word not in questionStopWords:
+            flag=False
+            break
+        if word in questionStopWords and word in verbs:
             flag=False
             break
         if word=="is":
@@ -316,80 +334,78 @@ def reRank_relations(entities,relations,questionWord,questionRelationsNumber,que
     correctRelations=[]
     sparql = SPARQLWrapper(wikidataSPARQL)
     for entity_raw in entities:
+        link_found_flag=False
         for entity in entity_raw:
-            for relation in relations:
-                flag=False
-                relation_wiki="<http://www.wikidata.org/prop/direct/"+relation[1][relation[1].rfind('/')+1:]
-                sparql.setQuery("""
-                                    ASK WHERE { 
-                                        """+entity[1]+""" """+relation_wiki+""" ?o
-                                    }    
-                                """)
-                sparql.setReturnFormat(JSON)
-                sparql.setMethod(POST)
-                results1 = sparql.query().convert()
-                if results1['boolean']:
-                    targetType=get_question_word_type(questionWord)
-                    if "/property/" not in relation[1] and  targetType is not None:
-                        if check_relation_range_type(relation[1],targetType) :
-                            correctRelations.append(relation)
-                            entity[3]+=15
-                            relation[3]+=15
-                    else:
-                        correctRelations.append(relation)
-                        
-                        entity[3]+=12
-                        relation[3] += 12
-                    continue
-                #############################################################
-                sparql.setQuery("""
-                    ASK WHERE { 
-                        ?s """+relation_wiki+""" """+entity[1]+"""
-                    }    
-                """)
-                sparql.setReturnFormat(JSON)
-                sparql.setMethod(POST)
-                results2 = sparql.query().convert()
-                if results2['boolean']:
-                    targetType=get_question_word_type(questionWord)
-                    if "/property/" not in relation[1] and  targetType is not None :
-                        #rangeType=get_relation_range(relation[1])
-                        
-                        if check_relation_range_type(relation[1],targetType) :
-                            correctRelations.append(relation)
-                            entity[3]+=10
-                            relation[3] += 10
-                    else:
-                        correctRelations.append(relation)
-                        entity[3]+=8
-                        relation[3] += 8   
-                    continue
-                #################################################################
-                sparql.setQuery("""
-                    ASK WHERE { 
-                         """+entity[1]+""" ?p ?o. ?o """+relation_wiki+""" ?z}    
-                """)
-                sparql.setReturnFormat(JSON)
-                if questionRelationsNumber > 1:
-                    results3 = sparql.query().convert()
-                    if results3['boolean']:
+            if not link_found_flag:
+                for relation in relations:
+                    flag=False
+                    relation_wiki="<http://www.wikidata.org/prop/direct/"+relation[1][relation[1].rfind('/')+1:]
+                    sparql.setQuery("""
+                                        ASK WHERE { 
+                                            """+entity[1]+""" """+relation_wiki+""" ?o
+                                        }    
+                                    """)
+                    sparql.setReturnFormat(JSON)
+                    sparql.setMethod(POST)
+                    results1 = sparql.query().convert()
+                    if results1['boolean']:
                         targetType=get_question_word_type(questionWord)
-                        if "/property/" not in relation[1] and  targetType is not None :
+                        if  targetType is not None:
+                            if check_relation_range_type(relation[1],targetType) :
+                                correctRelations.append(relation)
+                                entity[3]+=15
+                                relation[3]+=15
+                        else:
+                            correctRelations.append(relation)
+                            entity[3]+=12
+                            relation[3] += 12
+                        link_found_flag=True
+                        break
+                #############################################################
+                    sparql.setQuery("""
+                        ASK WHERE { 
+                            ?s """+relation_wiki+""" """+entity[1]+"""
+                        }    
+                    """)
+                    sparql.setReturnFormat(JSON)
+                    sparql.setMethod(POST)
+                    results2 = sparql.query().convert()
+                    if results2['boolean']:
+                        targetType=get_question_word_type(questionWord)
+                        if  targetType is not None :
+                            #rangeType=get_relation_range(relation[1])
                             
                             if check_relation_range_type(relation[1],targetType) :
                                 correctRelations.append(relation)
-                                entity[3]+=5
-                                relation[3] += 5
+                                entity[3]+=10
+                                relation[3] += 10
                         else:
                             correctRelations.append(relation)
-                            entity[3]+=3
-                            relation[3] += 3  
-                        continue
-                sparql.setQuery("""
-                    ASK WHERE { 
-                        ?s ?p """+entity[1]+""". ?s """+relation_wiki+""" ?z
-                    }    
-                """)
+                            entity[3]+=8
+                            relation[3] += 8   
+                        link_found_flag=True
+                        break
+                #################################################################
+                    sparql.setQuery("""
+                        ASK WHERE { 
+                             """+entity[1]+""" ?p ?o. ?o """+relation_wiki+""" ?z}    
+                    """)
+                    sparql.setReturnFormat(JSON)
+                    if questionRelationsNumber > 1:
+                        results3 = sparql.query().convert()
+                        if results3['boolean']:
+                            targetType=get_question_word_type(questionWord)
+                            if  targetType is not None :
+                                if check_relation_range_type(relation[1],targetType) :
+                                    correctRelations.append(relation)
+                                    entity[3]+=5
+                                    relation[3] += 5
+                            else:
+                                correctRelations.append(relation)
+                                entity[3]+=3
+                                relation[3] += 3  
+                            link_found_flag=True
+                            break
   
     return relations,entities
 
@@ -412,7 +428,8 @@ def mix_list_items(mixedRelations,k):
             for relation in sorted(raw, reverse=True, key=lambda x: x[3])[:k]:
                 relations.append(relation)
         else:
-            for relation in sorted(raw, reverse=True, key=lambda x: x[2])[:k]:
+            raw= sorted(raw, key = lambda x: (int(x[1][x[1].rfind("/")+2:-1]),-x[2]))
+            for relation in raw[:k]:
                 relations.append(relation)
     return relations
 
@@ -423,7 +440,8 @@ def mix_list_items_entities(mixedEntities,k):
             for entity in sorted(raw, reverse=True, key=lambda x: x[3])[:k]:
                 entities.append(entity)
         else:
-            for entity in sorted(raw, reverse=True, key=lambda x: x[2])[:k]:
+            raw= sorted(raw, key = lambda x: (int(x[1][x[1].rfind("/")+2:-1]),-x[2]))
+            for entity in raw[:k]:
                 entities.append(entity)         
     return entities
 
@@ -613,10 +631,19 @@ def extract_stop_words_question(text):
 def upper_all_entities(combinations,text):
     doc = nlp(text)
     relations=[]
+    entities = [x.text for x in doc.ents]
     final_combinations=[]
     for token in doc:
         if  (not token.is_stop) and ( (token.dep_=="compound" and token.pos_!="PROPN") or token.pos_=="VERB" or token.dep_ == "ROOT"):
-            relations.append(token.text)
+            isEntity=False
+            for ent in entities: 
+                if token.text in ent:
+                    ent_list=ent.split(' ')
+                    if ent_list.index(token.text)!= len(ent_list)-1:
+                        isEntity=True
+                        break
+            if not isEntity:
+                relations.append(token.text)
     for comb in combinations:
         if len(relations)==0:
             if comb.capitalize() not in final_combinations:

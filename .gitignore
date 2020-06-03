@@ -2,3 +2,6 @@
 .__pycache__/
 results/
 *.pyc
+*.pyc
+test3.py
+*.pyc
