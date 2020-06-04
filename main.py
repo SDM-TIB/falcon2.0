@@ -26,6 +26,8 @@ comparsion_words=wiki_stopwords.getComparisonWords()
 evaluation = False
 
 
+
+
 def get_verbs(question):
     verbs=[]
     entities=[]
@@ -35,9 +37,15 @@ def get_verbs(question):
         if (token.pos_=="VERB" or token.dep_=="ROOT") and not token.is_stop:
             isEntity=False
             for ent in entities: 
+                ent=ent.replace("?","")
+                ent=ent.replace(".","")
+                ent=ent.replace("!","")
+                ent=ent.replace("\\","")
+                ent=ent.replace("#","")
                 if token.text in ent:
                     ent_list=ent.split(' ')
-                    if ent_list.index(token.text)!= len(ent_list)-1:
+                    next_token=text[token.i+1]
+                    if ent_list.index(token.text)!= len(ent_list)-1 and next_token.dep_ =="compound":
                         isEntity=True
                         break
             if not isEntity:
@@ -437,7 +445,8 @@ def mix_list_items_entities(mixedEntities,k):
     entities=[]
     for raw in mixedEntities:
         if any(entity[3]>0 for entity in raw):
-            for entity in sorted(raw, reverse=True, key=lambda x: x[3])[:k]:
+            y=sorted(raw , key=lambda x: (-x[3],int(x[1][x[1].rfind("/")+2:-1])))
+            for entity in sorted(raw , key=lambda x: (-x[3],int(x[1][x[1].rfind("/")+2:-1])))[:k]:
                 entities.append(entity)
         else:
             raw= sorted(raw, key = lambda x: (int(x[1][x[1].rfind("/")+2:-1]),-x[2]))
@@ -627,6 +636,13 @@ def extract_stop_words_question(text):
 
     return stopwords
 
+def token_index(doc,token_):
+    i=0
+    for token in doc:
+        if token_ ==token.text:
+            return i
+        i=i+1
+    return -1
 
 def upper_all_entities(combinations,text):
     doc = nlp(text)
@@ -637,9 +653,15 @@ def upper_all_entities(combinations,text):
         if  (not token.is_stop) and ( (token.dep_=="compound" and token.pos_!="PROPN") or token.pos_=="VERB" or token.dep_ == "ROOT"):
             isEntity=False
             for ent in entities: 
+                ent=ent.replace("?","")
+                ent=ent.replace(".","")
+                ent=ent.replace("!","")
+                ent=ent.replace("\\","")
+                ent=ent.replace("#","")
                 if token.text in ent:
                     ent_list=ent.split(' ')
-                    if ent_list.index(token.text)!= len(ent_list)-1:
+                    next_token=doc[token.i+1]
+                    if ent_list.index(token.text)!= len(ent_list)-1 and next_token.dep_ =="compound":
                         isEntity=True
                         break
             if not isEntity:
@@ -658,184 +680,255 @@ def upper_all_entities(combinations,text):
     return final_combinations
 
 
-
+def split_base_on_entities(combinations,text):
+    doc = nlp(text)
+    #entities = [x.text for x in doc.ents]
+    final_combinations=[]
+    for comb in combinations:
+        comb_processed=False
+        for ent in doc.ents: 
+            ent_text=ent.text
+            ent_text=ent_text.replace("?","")
+            ent_text=ent_text.replace(".","")
+            ent_text=ent_text.replace("!","")
+            ent_text=ent_text.replace("\\","")
+            ent_text=ent_text.replace("#","")
+            if ent_text in comb and ent.label_ =="PERSON":
+                remaining_comb=comb.replace(ent_text,'').strip()
+                entity_text=ent_text
+                for rem_comb in remaining_comb.split(' '):
+                    rem_comb_index=token_index(doc,rem_comb)
+                    if doc[rem_comb_index].pos_=="PROPN":
+                        if rem_comb_index > token_index(doc,ent_text.split(' ')[0]):
+                            entity_text=entity_text+" "+rem_comb
+                        else:
+                            entity_text=rem_comb+" "+entity_text
+                    else:
+                        break
+                final_combinations.append(entity_text)
+                if len(comb.replace(entity_text,'').strip())>0:
+                    final_combinations.append(comb.replace(entity_text,'').strip())
+                comb_processed=True
+        if not comb_processed:
+            final_combinations.append(comb)
+    return final_combinations
+            
+                
+                
+                
+def merge_comb_det(combinations,text):
+    doc = nlp(text)
+    final_combinations=[]
+    for comb in combinations:
+        if comb.istitle():
+            comb_index=token_index(doc,comb)
+            if comb_index==-1:
+                comb_index=token_index(doc,comb.lower())
+            if doc[comb_index-1].tag_=="DT":
+                final_combinations.append(doc[comb_index-1].text.capitalize()+" "+comb)
+            else:
+                final_combinations.append(comb)
+        else:
+            final_combinations.append(comb)
+    return final_combinations
+            
+                       
+    
+        
         
 
 def evaluate(raw):
-    evaluation=True
-    relations_flag=False
-    startTime=time.time()
-    oneQuestion=False
-    global correctRelations
-    #correctRelations=0
-    global wrongRelations
-    #wrongRelations=0
-    global correctEntities
-    #correctEntities=0
-    global wrongEntities
-    #wrongEntities=0
-    global count
-    count=1
-    p_entity=0
-    r_entity=0
-    p_relation=0
-    r_relation=0
-    k=1
-    correct=True
-    questionRelationsNumber=0
-    entities=[]
-    questionWord=raw[0].strip().split(' ')[0]
-    mixedRelations=[]
-    #beforeMixRelations=[]
-    question=raw[0]
-    #print(question)
-    originalQuestion=question
-    question=question[0].lower() + question[1:]
-    question=question.replace("?","")
-    question=question.replace(".","")
-    question=question.replace("!","")
-    question=question.replace("\\","")
-    question=question.replace("#","")
-
-    questionStopWords=extract_stop_words_question(question)
-    # print('questionStopWords: ', questionStopWords)
-    combinations=get_question_combinatios(question,questionStopWords)
-    # print('combinations: ',combinations)
-    combinations=merge_comb_stop_words(combinations,question,questionStopWords)
-    #print(combinations)
-
-    combinations=split_base_on_verb(combinations,originalQuestion)
-    combinations=split_base_on_s(combinations)
-    oldCombinations=combinations
+    try:
+        evaluation=True
+        relations_flag=False
+        startTime=time.time()
+        oneQuestion=False
+        global correctRelations
+        #correctRelations=0
+        global wrongRelations
+        #wrongRelations=0
+        global correctEntities
+        #correctEntities=0
+        global wrongEntities
+        #wrongEntities=0
+        global count
+        print(count)
+        p_entity=0
+        r_entity=0
+        p_relation=0
+        r_relation=0
+        k=1
+        correct=True
+        questionRelationsNumber=0
+        entities=[]
+        questionWord=raw[0].strip().split(' ')[0]
+        mixedRelations=[]
+        #beforeMixRelations=[]
+        question=raw[0]
+        #print(question)
+        originalQuestion=question
+        question=question[0].lower() + question[1:]
+        question=question.replace("?","")
+        question=question.replace(".","")
+        question=question.replace("!","")
+        question=question.replace("\\","")
+        question=question.replace("#","")
     
-    for idx,term in enumerate(combinations):
-        if len(term)==0:
-            continue
-        if term[0].istitle():
-            continue;
-
-        propertyResults=wiki_search_elastic.propertySearch(term)
-
-        if len(propertyResults) == 0:    
-            combinations[idx]=term.capitalize()
-            question=question.replace(term,term.capitalize())
-            
-    combinations=merge_comb_stop_words(combinations,question,questionStopWords)
-    combinations=sort_combinations(combinations,question)
-    combinations=merge_entity_prefix(question,combinations,originalQuestion)
-    combinations,compare_found=split_bas_on_comparison(combinations)
-    combinations=extract_abbreviation(combinations)
-    combinations=upper_all_entities(combinations,originalQuestion)
-    i=0
-    nationalityFlag=False
-    for term in combinations:
-        properties=[]
-        entities_term=[]
-        if len(term)==0:
-            continue
-
-        if check_entities_in_text(originalQuestion,term):
-            term=term.capitalize()
+        questionStopWords=extract_stop_words_question(question)
+        # print('questionStopWords: ', questionStopWords)
+        combinations=get_question_combinatios(question,questionStopWords)
+        # print('combinations: ',combinations)
+        combinations=merge_comb_stop_words(combinations,question,questionStopWords)
+        #print(combinations)
+    
+        combinations=split_base_on_verb(combinations,originalQuestion)
+        combinations=split_base_on_s(combinations)
+        oldCombinations=combinations
         
-        if any(x.isupper() for x in term) :
-            # print(term," ", i)
-            entityResults=wiki_search_elastic.entitySearch(term)
-            if " and " in term:
-                for word in term.split(' and '):
-                    entityResults.extend(wiki_search_elastic.entitySearch(word.strip()))
-            if " or " in term:
-                for word in term.split(' or '):
-                    entityResults.extend(wiki_search_elastic.entitySearch(word.strip()))
-            if len(entityResults)!=0:
-                for result in entityResults:
-                    if result[1] not in [e[1] for e in entities_term]:
-                        entities_term.append(result+[term])
-                #print(len(entities_term))
-                entities.append(entities_term)
-                    #print(entities)
-        else:
+        for idx,term in enumerate(combinations):
+            if len(term)==0:
+                continue
+            if term[0].istitle():
+                continue;
+    
             propertyResults=wiki_search_elastic.propertySearch(term)
-            if len(propertyResults)!=0:
-                    propertyResults=[result+[term] for result in propertyResults]
-                    properties=properties+propertyResults
-            mixedRelations.append("")
-            mixedRelations[i]=properties
-            i=i+1
-
-    questionRelationsNumber=len(mixedRelations)
-    oldEnities=entities
-    if (len(mixedRelations)==0 and questionWord.lower()=="when") or compare_found:
-        mixedRelations.append([["time","<http://www.wikidata.org/wiki/Property:P569>",0,20,"when"]])
-        compare_found=False
-
-    for i in range(len(mixedRelations)):
-        #print(i)
-        mixedRelations[i]=distinct_relations(mixedRelations[i])
-        mixedRelations[i],entities=reRank_relations(entities,mixedRelations[i],questionWord,questionRelationsNumber,question,k)
-        
-    mixedRelations=mix_list_items(mixedRelations,k)
-    entities=mix_list_items_entities(entities,k)
     
-    if nationalityFlag:
-        mixedRelations.append(["country","<https://www.wikidata.org/wiki/Property:P17>",20,"country"])
-
-    if evaluation:
-        if relations_flag:
-            prop = "<http://www.wikidata.org/wiki/Property:"+raw[2][0]+">"
-            #prop =raw[2]
-            #numberSystemRelations=len(raw[1])
-            numberSystemRelations = 1
-            intersection= set(raw[2]).intersection([tup[1][tup[1].rfind('/')+1:-1] for tup in mixedRelations])
-            if numberSystemRelations!=0 and len(mixedRelations)!=0:
-                p_relation=len(intersection)/len(mixedRelations)
-                r_relation=len(intersection)/numberSystemRelations
-
-            if relation[relation.rfind('/')+1:] in [tup[1][tup[1].rfind('/')+1:] for tup in mixedRelations]:
-                correctRelations=correctRelations+1
-
+            if len(propertyResults) == 0:    
+                combinations[idx]=term.capitalize()
+                question=question.replace(term,term.capitalize())
+                
+        combinations=merge_comb_stop_words(combinations,question,questionStopWords)
+        combinations=sort_combinations(combinations,question)
+        combinations=merge_entity_prefix(question,combinations,originalQuestion)
+        combinations,compare_found=split_bas_on_comparison(combinations)
+        combinations=extract_abbreviation(combinations)
+        combinations=split_base_on_entities(combinations,originalQuestion)
+        combinations=upper_all_entities(combinations,originalQuestion)
+        combinations=merge_comb_det(combinations,originalQuestion)
+        i=0
+        nationalityFlag=False
+        for term in combinations:
+            properties=[]
+            entities_term=[]
+            if len(term)==0:
+                continue
+    
+            if check_entities_in_text(originalQuestion,term):
+                term=term.capitalize()
+            
+            if any(x.isupper() for x in term) :
+                # print(term," ", i)
+                entityResults=wiki_search_elastic.entitySearch(term)
+                if " and " in term:
+                    for word in term.split(' and '):
+                        entityResults.extend(wiki_search_elastic.entitySearch(word.strip()))
+                if " or " in term:
+                    for word in term.split(' or '):
+                        entityResults.extend(wiki_search_elastic.entitySearch(word.strip()))
+                if len(entityResults)!=0:
+                    for result in entityResults:
+                        if result[1] not in [e[1] for e in entities_term]:
+                            entities_term.append(result+[term])
+                    #print(len(entities_term))
+                    entities.append(entities_term)
+                        #print(entities)
             else:
-                wrongRelations=wrongRelations+1
-                correct=False
-                global questions_labels
-
-
-        true_entity=[]
-        for e in raw[1]:
-            true_entity.append(e)
-        #true_entity = raw[1]
-        numberSystemEntities=len(raw[1])
-        # print(true_entity, entities)
-        intersection= set(true_entity).intersection([tup[1][tup[1].rfind('/')+1:-1] for tup in entities])
-
-        #true_entity = "<http://www.wikidata.org/entity/"+raw[0]+">"
-        numberSystemEntities=len(raw[1])
-
-        if numberSystemEntities!=0 and len(entities)!=0 :
-            p_entity=len(intersection)/len(entities)
-            r_entity=len(intersection)/numberSystemEntities
-        for e in true_entity:
-            if e in [tup[1][tup[1].rfind('/')+1:-1] for tup in entities]:
-                correctEntities=correctEntities+1
-            else:
-                wrongEntities=wrongEntities+1
-                correct=False
-
+                propertyResults=wiki_search_elastic.propertySearch(term)
+                if len(propertyResults)!=0:
+                        propertyResults=[result+[term] for result in propertyResults]
+                        properties=properties+propertyResults
+                mixedRelations.append("")
+                mixedRelations[i]=properties
+                i=i+1
+    
+        questionRelationsNumber=len(mixedRelations)
+        oldEnities=entities
+        if (len(mixedRelations)==0 and questionWord.lower()=="when") or compare_found:
+            mixedRelations.append([["time","<http://www.wikidata.org/wiki/Property:P569>",0,20,"when"]])
+            compare_found=False
+    
+        for i in range(len(mixedRelations)):
+            #print(i)
+            mixedRelations[i]=distinct_relations(mixedRelations[i])
+            try:
+                mixedRelations[i],entities=reRank_relations(entities,mixedRelations[i],questionWord,questionRelationsNumber,question,k)
+            except:
+                try:
+                    mixedRelations[i],entities=reRank_relations(entities,mixedRelations[i],questionWord,questionRelationsNumber,question,k)
+                except:
+                    continue
+            
+        mixedRelations=mix_list_items(mixedRelations,k)
+        entities=mix_list_items_entities(entities,k)
+        
+        if nationalityFlag:
+            mixedRelations.append(["country","<https://www.wikidata.org/wiki/Property:P17>",20,"country"])
+    
+        if evaluation:
+            if relations_flag:
+                prop = "<http://www.wikidata.org/wiki/Property:"+raw[2][0]+">"
+                #prop =raw[2]
+                #numberSystemRelations=len(raw[1])
+                numberSystemRelations = 1
+                intersection= set(raw[2]).intersection([tup[1][tup[1].rfind('/')+1:-1] for tup in mixedRelations])
+                if numberSystemRelations!=0 and len(mixedRelations)!=0:
+                    p_relation=len(intersection)/len(mixedRelations)
+                    r_relation=len(intersection)/numberSystemRelations
+    
+                if relation[relation.rfind('/')+1:] in [tup[1][tup[1].rfind('/')+1:] for tup in mixedRelations]:
+                    correctRelations=correctRelations+1
+    
+                else:
+                    wrongRelations=wrongRelations+1
+                    correct=False
+                    global questions_labels
+    
+    
+            true_entity=[]
+            for e in raw[1]:
+                true_entity.append(e)
+            #true_entity = raw[1]
+            numberSystemEntities=len(raw[1])
+            # print(true_entity, entities)
+            intersection= set(true_entity).intersection([tup[1][tup[1].rfind('/')+1:-1] for tup in entities])
+    
+            #true_entity = "<http://www.wikidata.org/entity/"+raw[0]+">"
+            numberSystemEntities=len(raw[1])
+    
+            if numberSystemEntities!=0 and len(entities)!=0 :
+                p_entity=len(intersection)/len(entities)
+                r_entity=len(intersection)/numberSystemEntities
+            for e in true_entity:
+                if e in [tup[1][tup[1].rfind('/')+1:-1] for tup in entities]:
+                    correctEntities=correctEntities+1
+                else:
+                    wrongEntities=wrongEntities+1
+                    correct=False
+    
         count=count+1
-    #endTime=time.time()
-    #raw.append(endTime-startTime)
-  
-    ############        
-    raw.append([[tup[1],tup[4]] for tup in mixedRelations])        
-    raw.append([[tup[1],tup[4]] for tup in entities])
-    raw.append(p_entity)
-    raw.append(r_entity)
-    #raw.append(p_relation)
-    #raw.append(r_relation)
-    return raw
+        #endTime=time.time()
+        #raw.append(endTime-startTime)
+      
+        ############        
+        raw.append([[tup[1],tup[4]] for tup in mixedRelations])        
+        raw.append([[tup[1],tup[4]] for tup in entities])
+        raw.append(p_entity)
+        raw.append(r_entity)
+        #raw.append(p_relation)
+        #raw.append(r_relation)
+        global threading
+        if threading==True:
+            global results
+            results.append(raw)
+        
+        return raw
+    except:
+        print("error")
 
 
 def datasets_evaluate():
-    threading=False
+    global threading
+    threading=True
     
     k=1
     kMax=10
@@ -849,10 +942,13 @@ def datasets_evaluate():
     correctEntities=0
     global wrongEntities
     wrongEntities=0
-    count=1
     startQ=0
     endQ=5000
     errors=0
+    global count
+    count=1
+    
+    global results
     results=[]
     p_e=0
     p_r=0
@@ -861,31 +957,31 @@ def datasets_evaluate():
     
     
     #filepath = 'datasets/'+dataset_file
-    questions=wiki_evaluation.read_test_set()
+    questions=wiki_evaluation.read_simplequestions_entities()
 
     
     if threading:
         pool = ThreadPool(12)
-        pool.map(evaluate, questions[:50])
+        pool.map(evaluate, questions)
         pool.close()
         pool.join()
     else:
-        for question in questions:
-            #try:
-            single_result=evaluate(question)
-            print(count)
-            count=count+1
-            #print( "#####" + str((correctRelations * 100) / (correctRelations + wrongRelations)))
-            print("#####" + str((correctEntities * 100) / (correctEntities + wrongEntities)))
-            results.append(single_result)
+        for question in questions[:]:
+            try:
+                single_result=evaluate(question)
+                print(count)
+                count=count+1
+                #print( "#####" + str((correctRelations * 100) / (correctRelations + wrongRelations)))
+                print("#####" + str((correctEntities * 100) / (correctEntities + wrongEntities)))
+                results.append(single_result)
             
-            '''except:
+            except:
                 errors+=1
                 print("error"+str(errors))
-                continue'''
+                continue
      
         
-    with open('datasets/results/FALCON_webqsp.csv', mode='w', newline='', encoding='utf-8') as results_file:
+    with open('datasets/results/FALCON_simple.csv', mode='w', newline='', encoding='utf-8') as results_file:
         writer = csv.writer(results_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
         writer.writerows(results)    
     #print("Correct Relations:",correctRelations)

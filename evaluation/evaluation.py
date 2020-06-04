@@ -11,6 +11,8 @@ import io
 import re
 count=0
 
+def isLineEmpty(line):
+	return len(line) == 0
 
 def process_lcquad_2(questions):
     dataset=[]
@@ -54,3 +56,19 @@ def read_test_set():
     data = json.load(io.open('./datasets/webqsp.test.entities.with_classes.json', encoding='utf-8')) 
     questions=[[question['utterance'],[x   for x in question['entities'] if x is not None]] for question in data]
     return questions
+
+def read_simplequestions_entities():
+	f = open('./datasets/simplequestions.txt', 'r',encoding='utf-8')
+	rows=f.readlines()
+	ans = []
+	for q in rows:
+		q = q.rstrip('\n')
+		line = q.split("\t")
+		if 'R' in line[1]:
+			line[1].replace('R','P')
+		if not isLineEmpty(line):
+			ans.append([line[3],[line[0]]])
+		# if(len(line)!=4):
+		# 	print(q," has more elements")
+	f.close()
+	return ans
