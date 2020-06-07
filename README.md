@@ -1,6 +1,6 @@
 # FALCON 2.0
 
-Falcon 2.0 (read paper at: [Falcon2.0 ](https://arxiv.org/abs/1912.11270))is a entity and relation linking tool over Wikidata. It leverages fundamental principles of the English morphology (e.g., N-Gram tiling and N-Gramsplitting) to accurately map entities and relations in short texts to resources in  Wikidata. Falcon is available as Web API and can be queried using CURL: 
+Falcon 2.0 is a entity and relation linking tool over Wikidata. It leverages fundamental principles of the English morphology (e.g., N-Gram tiling and N-Gramsplitting) to accurately map entities and relations in short texts to resources in  Wikidata. Falcon 2.0 is available as a web API and can be queried using CURL: 
 ```
 curl --header "Content-Type: application/json" \
   --request POST \
@@ -9,24 +9,13 @@ curl --header "Content-Type: application/json" \
 ```
 This is the first resource of this repository. The second resource is described in the ElasticSearch section. 
 
-### Please cite Our paper if you use Falcon 2.0
-```
-@misc{sakor2019falcon,
-    title={FALCON 2.0: An Entity and Relation Linking Tool over Wikidata},
-    author={Ahmad Sakor and Kuldeep Singh and Anery Patel and Maria-Esther Vidal},
-    year={2019},
-    eprint={1912.11270},
-    archivePrefix={arXiv},
-    primaryClass={cs.CL}
-}
-```
 
 # Implementation
 To begin with, install the libraries stated in the requiremnts.txt file as follows:
 ```
 pip install -r requirements.txt
 ```
-The code for FALCON tool has three main aspects: elastic search, the algorithm and evaluation. 
+The code for Falcon 2.0 tool has three main aspects: elastic search, the algorithm and evaluation. 
 ## Elastic Search and Background Knowlege
 Before we begin working with the Wikidata Dump, we first need to connect to an elasticsearch endpoint, and a Wikidata endpoint. The elasticsearch endpoint is used to interact with our cluster through the Elasticsearch API. 
 The ElasticSearch dump (Also knowns as R2: Background Knowledge) for Falcon 2.0 can be downloaded from this link:
@@ -72,25 +61,18 @@ main.py contains the code for automatic entity and relation linking to resources
 ## Evaluation
 
 ### Usage
-You may choose to run the tool for a single query or evaluate it on a dataset.
-To run the tool on a single query (short text):
-```
-python3 main.py --q <query>
-```
+To run Falcon 2.0 you have to call the function "process_text_E_R(question)" where question is the short text to be processed by Falcon 2.0
+We 
 
-When evaluating a dataset, the program compares the entitites and relations extracted by Falcon 2.0 to that of the entitites and relations in the dataset for each question. To evaluate the tool on a dataset:
-```
-python3 main.py --d <path_To_Dataset>
-```
-
-We empirically evaluated Falcon 2.0 on a question answering dataset tailored for Wikidata and Falcon 2.0 significantly outperforms the baseline. We worked on two different question answering datasets namely Simple-Question Dataset for Wikidata and LC-QuAD 2.0. 
+For evaluating Falcon 2.0 we relied on three different question answering datasets namely SimpleQuestion dataset for Wikidata, WebQSP-WD, and LC-QuAD 2.0.
 
 ### Baseline
 
-We chose OpenTapioca as our baseline for entity and relation linking. OpenTapioca is available as web API and can provide Wikidata URIs for relations and entities. We are not aware of any other tool/approach that provides Wikidata entity linking.
+The baseline used in our empirical evaluation are OpenTapioca, Variable Context Granularity model (VCG), Simplified VCG, and S-Mart.
 
 ### Results on SimpleQuestions dataset
-[SimpleQuestion dataset ](https://github.com/askplatypus/wikidata-simplequestions)contains 6505 test questions which are answerable using Wikidata as underlying Knowledge Graph. We observe that for baseline, the values surprisingly are approximately zero for precision, recall, and F-score. We analysed the source of errors,  and  found  that  out  of  6505  questions,  only  246  have  entity  labels  in uppercase  letters.  Opentapioca  can  not  recognise  entities  and  link  any  entity written in lowercase letters. For remaining 246 questions, only 70 gives the correct answer for OpenTapioca (https://opentapioca.org/). On the other hand, Falcon 2.0 reports F-score 0.63 on the same dataset.
+We relied on three different question answering datasets namely SimpleQuestion dataset for Wikidata, WebQSP-WD, and LC-QuAD 2.0. SimpleQuestion dataset contains 5,622 test questions which are answerable using Wikidata as underlying KG. WebQSP-WD contains  1639 test questions, and LC-QUAD 2.0 contains 6046 test questions. SimpleQuestion and LC-QuaD 2.0 provide the annotated gold standard for entity and relations, whereas WebQSP-WD only provides annotated gold standard for entities. Hence, we calculated entity linking performance on three datasets and relation linking performance on two datasets. Also, SimpleQuestion and WebQSP-WD contain questions with a single entity and relation, whereas LC-QuAD 2.0 contains mostly complex questions (more than one entity and relation)..
+
 The code for opentapioca evaluation on Simplequestions can be found in evaluation/opentapioca.py. We implement a wrapper for Opentapioca API to send requests and retrive data quickly. The following function refers to the wrapper:
 ```
 def open_tapioca_call(text): ...
