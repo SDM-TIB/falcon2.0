@@ -70,7 +70,7 @@ For evaluating Falcon 2.0 we relied on three different question answering datase
 
 The baseline used in our empirical evaluation are OpenTapioca, Variable Context Granularity model (VCG), Simplified VCG, and S-Mart.
 
-### Results on SimpleQuestions dataset
+### Datasets
 We relied on three different question answering datasets namely SimpleQuestion dataset for Wikidata, WebQSP-WD, and LC-QuAD 2.0. SimpleQuestion dataset contains 5,622 test questions which are answerable using Wikidata as underlying KG. WebQSP-WD contains  1639 test questions, and LC-QUAD 2.0 contains 6046 test questions. SimpleQuestion and LC-QuaD 2.0 provide the annotated gold standard for entity and relations, whereas WebQSP-WD only provides annotated gold standard for entities. Hence, we calculated entity linking performance on three datasets and relation linking performance on two datasets. Also, SimpleQuestion and WebQSP-WD contain questions with a single entity and relation, whereas LC-QuAD 2.0 contains mostly complex questions (more than one entity and relation)..
 
 The code for opentapioca evaluation on Simplequestions can be found in evaluation/opentapioca.py. We implement a wrapper for Opentapioca API to send requests and retrive data quickly. The following function refers to the wrapper:
