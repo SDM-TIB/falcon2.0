@@ -61,18 +61,9 @@ main.py contains the code for automatic entity and relation linking to resources
 ## Evaluation
 
 ### Usage
-You may choose to run the tool for a single query or evaluate it on a dataset.
-To run the tool on a single query (short text):
-```
-python3 main.py --q <query>
-```
+To run Falcon 2.0 you have to call the function "process_text_E_R(question)" where question is the short text to be processed by Falcon 2.0 We
 
-When evaluating a dataset, the program compares the entitites and relations extracted by Falcon 2.0 to that of the entitites and relations in the dataset for each question. To evaluate the tool on a dataset:
-```
-python3 main.py --d <path_To_Dataset>
-```
-
-We evaluate Falcon 2.0 on three different question answering datasets namely SimpleQuestion dataset for Wikidata, WebQSP-WD and LC-QuAD 2.0. SimpleQuestion and LC-QuaD2.0 provide the annotated gold standard for entity and relations, whereas WebQSP-WD only provides annotated gold standard for entities.
+For evaluating Falcon 2.0 we relied on three different question answering datasets namely SimpleQuestion dataset for Wikidata, WebQSP-WD, and LC-QuAD 2.0.
 
 ## Experimental Results for Entity Linking
 
