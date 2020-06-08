@@ -1,6 +1,6 @@
 # FALCON 2.0
 
-Falcon 2.0 is a entity and relation linking tool over Wikidata. It leverages fundamental principles of the English morphology (e.g., N-Gram tiling and N-Gramsplitting) to accurately map entities and relations in short texts to resources in  Wikidata. Falcon 2.0 is available as a web API and can be queried using CURL: 
+Falcon 2.0 is a entity and relation linking tool over Wikidata. It leverages fundamental principles of the English morphology (e.g., N-Gram tiling and N-Gramsplitting) to accurately map entities and relations in short texts to resources in  Wikidata. Falcon is available as Web API and can be queried using CURL: 
 ```
 curl --header "Content-Type: application/json" \
   --request POST \
@@ -11,12 +11,12 @@ This is the first resource of this repository. The second resource is described 
 
 
 # Implementation
-To begin with, install the libraries stated in the requiremnts.txt file as follows:
+To begin with, install the libraries stated in the requirements.txt file as follows:
 ```
 pip install -r requirements.txt
 ```
-The code for Falcon 2.0 tool has three main aspects: elastic search, the algorithm and evaluation. 
-## Elastic Search and Background Knowlege
+The code for FALCON tool has three main aspects: elastic search, the algorithm and evaluation. 
+## Elastic Search and Background Knowledge
 Before we begin working with the Wikidata Dump, we first need to connect to an elasticsearch endpoint, and a Wikidata endpoint. The elasticsearch endpoint is used to interact with our cluster through the Elasticsearch API. 
 The ElasticSearch dump (Also knowns as R2: Background Knowledge) for Falcon 2.0 can be downloaded from this link:
 https://doi.org/10.6084/m9.figshare.11362883
@@ -61,26 +61,36 @@ main.py contains the code for automatic entity and relation linking to resources
 ## Evaluation
 
 ### Usage
-To run Falcon 2.0 you have to call the function "process_text_E_R(question)" where question is the short text to be processed by Falcon 2.0
-We 
-
-For evaluating Falcon 2.0 we relied on three different question answering datasets namely SimpleQuestion dataset for Wikidata, WebQSP-WD, and LC-QuAD 2.0.
-
-### Baseline
-
-The baseline used in our empirical evaluation are OpenTapioca, Variable Context Granularity model (VCG), Simplified VCG, and S-Mart.
-
-### Datasets
-We relied on three different question answering datasets namely SimpleQuestion dataset for Wikidata, WebQSP-WD, and LC-QuAD 2.0. SimpleQuestion dataset contains 5,622 test questions which are answerable using Wikidata as underlying KG. WebQSP-WD contains  1639 test questions, and LC-QUAD 2.0 contains 6046 test questions. SimpleQuestion and LC-QuaD 2.0 provide the annotated gold standard for entity and relations, whereas WebQSP-WD only provides annotated gold standard for entities. Hence, we calculated entity linking performance on three datasets and relation linking performance on two datasets. Also, SimpleQuestion and WebQSP-WD contain questions with a single entity and relation, whereas LC-QuAD 2.0 contains mostly complex questions (more than one entity and relation)..
-
-The code for opentapioca evaluation on Simplequestions can be found in evaluation/opentapioca.py. We implement a wrapper for Opentapioca API to send requests and retrive data quickly. The following function refers to the wrapper:
+You may choose to run the tool for a single query or evaluate it on a dataset.
+To run the tool on a single query (short text):
 ```
-def open_tapioca_call(text): ...
+python3 main.py --q <query>
 ```
-Opentapioca returns a JSON object with annotations for mentions in the text. It outputs all the candidate entities for a mention along with the best ranked entity or property under the attribute 'best_qid'. We consider the best ranked entity as the output and compare it with the true entities in the dataset. You can evaluate using the following function (annotations refer to Opentapioca output and raw refers to the true entities as mentioned in the dataset):
+
+When evaluating a dataset, the program compares the entitites and relations extracted by Falcon 2.0 to that of the entitites and relations in the dataset for each question. To evaluate the tool on a dataset:
 ```
-def evaluate(annotations, raw): ...
+python3 main.py --d <path_To_Dataset>
 ```
-### Results on LC-Quad 2.0
-Given the limitations of OpenTapioca on Simplequestions dataset, we randomly selected 1000 questions from [LC-QuAD 2.0](https://figshare.com/articles/test_set_for_lcquad_2_0/8479052) to test the robustness of our tool on complex questions. OpenTapioca reports F-score 0.25 against Falcon 2.0 with F-score 0.68.
+
+We evaluate Falcon 2.0 on three different question answering datasets namely SimpleQuestion dataset for Wikidata, WebQSP-WD and LC-QuAD 2.0. SimpleQuestion and LC-QuaD2.0 provide the annotated gold standard for entity and relations, whereas WebQSP-WD only provides annotated gold standard for entities.
+
+## Experimental Results for Entity Linking
+
+### SimpleQuestions dataset
+[SimpleQuestion dataset ](https://github.com/askplatypus/wikidata-simplequestions) contains 5622 test questions which are answerable using Wikidata as underlying Knowledge Graph. Falcon 2.0 reports precision value 0.66, recall value 0.75 and F-score value 0.70 on this dataset. 
+
+### LC-QuAD 2.0 dataset
+[LC-Quad 2.0](http://lc-quad.sda.tech/) contains 6046 test questions that are mostly complex (more than one entity and relation). On this dataset, Falcon 2.0 reports a precision value 0.50, recall value 0.66 and F-score 0.57. 
+
+
+### WebQSP-WD dataset
+[WebQSP-WD](https://github.com/UKPLab/coling2018-graph-neural-networks-question-answering/blob/master/WEBQSP_WD_README.md) contains 1639 test questions with single entity and relation per question. Falcon 2.0 outperforms all other baselines with highest F-score value 0.84, precision value 0.80 and highest recall value 0.88 on WebQSP-WD dataset. 
+
+## Experimental Results for Relation Linking
+
+### SimpleQuestions dataset
+Falcon 2.0 reports a precision value of 0.34, recall value 0.37 and F-score 0.36 on SimpleQuestions dataset for relation linking task.
+
+### LC-QuAD 2.0
+Falcon 2.0 reports a precision value of 0.44, recall value 0.37 and F-score 0.40 on LC-Quad 2.0 dataset. 
 
