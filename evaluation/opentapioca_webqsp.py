@@ -2,7 +2,8 @@
 
 import requests
 import csv
-import evaluation
+import json
+import io
 
 
 
@@ -10,21 +11,9 @@ def isLineEmpty(line):
     return len(line) == 0
 
 def read_dataset(filename):
-    f = open(filename, 'r',encoding='utf-8')
-    rows=f.readlines()
-    ans = []
-    for q in rows:
-        q = q.rstrip('\n')
-        line = q.split("\t")
-        if 'R' in line[1]:
-            line[1].replace('R','P')
-        if not isLineEmpty(line):
-            line[3]=line[3][0].lower()+line[3][1:]
-            ans.append([line[3],[line[0]],[line[1]]])
-        # if(len(line)!=4):
-        # 	print(q," has more elements")
-    f.close()
-    return ans
+    data = json.load(io.open('../datasets/webqsp.test.entities.with_classes.json', encoding='utf-8')) 
+    questions=[[question['utterance'],[x   for x in question['entities'] if x is not None]] for question in data]
+    return questions
 
 def open_tapioca_call(text):
     # print(text)
@@ -67,6 +56,8 @@ def evaluate(annotations, raw):
 
     true_entity = raw[1]
     numberSystemEntities = len(raw[1])
+    if numberSystemEntities==0:
+        return [0,1,0,0,[]]
     # print(true_entity, entities)
     for e in true_entity:
         if e in entities:
@@ -104,7 +95,7 @@ if __name__ == "__main__":
     print("Total wrong entities: ", wrong)
     print("P:")
     print((correct * 100) / (correct + wrong))
-    with open('../datasets/results/final/results_simple_entities_OpenTapioca.csv', mode='w', newline='', encoding='utf-8') as results_file:
+    with open('../datasets/results/final/results_webqsp_entities_OpenTapioca.csv', mode='w', newline='', encoding='utf-8') as results_file:
         writer = csv.writer(results_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
         writer.writerows(result)
 

@@ -1,24 +1,14 @@
-
-
-
-import re
 import csv
-import sys
 import spacy
-import time
-import statistics
-
 from src import stopwords as wiki_stopwords
 from Elastic import searchIndex as wiki_search_elastic
 from evaluation import evaluation as wiki_evaluation
-#from evaluateFalcon2 import read_dataset
 from SPARQLWrapper import SPARQLWrapper, JSON, POST
 from multiprocessing.pool import ThreadPool
-from difflib import SequenceMatcher
 
 
 nlp = spacy.load('en_core_web_sm')
-#wikidataSPARQL="https://17d140f2.ngrok.io/sparql"
+
 wikidataSPARQL="http://node3.research.tib.eu:4010/sparql"
 
 stopWordsList=wiki_stopwords.getStopWords()
@@ -34,7 +24,7 @@ def get_verbs(question):
     text = nlp(question)
     entities=[x.text for x in text.ents]
     for token in text:
-        if (token.pos_=="VERB" or token.dep_=="ROOT") and not token.is_stop:
+        if (token.pos_=="VERB") and not token.is_stop:
             isEntity=False
             for ent in entities: 
                 ent=ent.replace("?","")
@@ -52,19 +42,17 @@ def get_verbs(question):
                 verbs.append(token.text)
     return verbs
 
-def split_base_on_verb(combinations,question):
+def split_base_on_verb(combinations,combinations_relations,question):
     newCombinations=[]
     verbs=get_verbs(question)
     flag=False
     for comb in combinations:
         flag=False
-        if len(comb.strip().split(' '))==1:
-            newCombinations.append(comb)
-            continue
         for word in comb.split(' '):
             if word in verbs:
                 flag=True
-                newCombinations.append(word.strip())
+                combinations_relations.append(word.strip())
+                #newCombinations.append(word.strip())
                 for term in comb.split(word):
                     if term!="":
                         newCombinations.append(term.strip())
@@ -72,97 +60,27 @@ def split_base_on_verb(combinations,question):
             newCombinations.append(comb)
         
         
-    return newCombinations
+    return newCombinations,combinations_relations
 
-def split_base_on_titles(combinations):
-    newCombinations=[]
-    temp=""
-    for comb in combinations:
-        if len(comb.split(' '))==1:
-            newCombinations.append(comb)
-            continue
-        if not any(c.isupper() for c in comb):
-            newCombinations.append(comb)
-            continue
-        else:
-            for word in comb.split(' '):
-                if word.isdigit():
-                    temp=temp+word+" "
-                    continue
-                if len(word)<=2:
-                    temp=temp+word+" "
-                    continue
-                if word[0].istitle():
-                    if temp=="":
-                        temp=temp+word+" "
-                    else:
-                        if temp[0].istitle():
-                            temp=temp+word+" "
-                        else:    
-                            newCombinations.append(word)
-                else:
-                    if temp=="":
-                        newCombinations.append(word)
-                    else:
-                        if any(c.isupper() for c in temp):
-                            newCombinations.append(temp.strip())
-                            temp=word+" "
-                        else:
-                            temp=temp+word+" "
-        if temp!="":
-            newCombinations.append(temp.strip())
-            temp=""
-    return newCombinations
+
                  
-                
-
-
-def word_is_verb(word,question):
-    text = nlp(question)
-    for token in text:
-        if token.text==word and (token.pos_=="VERB" or token.dep_ == "ROOT"):
-            return True
-    return False
-
-def no_words_between(comb1,comb2,question):
-    check=question[question.find(comb1)+len(comb1):question.rfind(comb2)]
-    if check.strip()=="":
-        return True
-    else:
-        return False
-
-def merge_entity_prefix(question,combinations,originalQuestion):
-    newCombinations=[]
-    i=0
-    while i < len(combinations):
-        if i+1 < len(combinations):
-            if not word_is_verb(combinations[i],originalQuestion) and not word_is_verb(combinations[i+1],originalQuestion):
-                if no_words_between(combinations[i],combinations[i+1],originalQuestion):
-                    newCombinations.append(combinations[i]+" "+combinations[i+1])
-                    i=i+1
-                else:
-                    newCombinations.append(combinations[i])         
-            else:
-                newCombinations.append(combinations[i])
-            i=i+1
-        if i==len(combinations)-1:
-            newCombinations.append(combinations[i])
-            i=i+1
-    return newCombinations     
+              
             
 def get_question_combinatios(question,questionStopWords):
     combinations=[]
     tempCombination=""
-
-    for word in question.split(' '):
-        if word in questionStopWords:
-            if tempCombination != "":
-                combinations.append(tempCombination.strip())
-                tempCombination=""
-        else:
-            tempCombination=tempCombination+word+" "
-    if tempCombination != "":
-          combinations.append(tempCombination.strip())  
+    if len(questionStopWords)==0:
+        combinations = question.split(' ')
+    else:
+        for word in question.split(' '):
+            if word in questionStopWords:
+                if tempCombination != "":
+                    combinations.append(tempCombination.strip())
+                    tempCombination=""
+            else:
+                tempCombination=tempCombination+word+" "
+        if tempCombination != "":
+              combinations.append(tempCombination.strip())  
     return combinations
 
 def check_only_stopwords_exist(question,comb1,comb2,questionStopWords):
@@ -170,7 +88,7 @@ def check_only_stopwords_exist(question,comb1,comb2,questionStopWords):
     doc = nlp(question)
     verbs=[]
     for token in doc:
-        if token.tag_ == "VBD":
+        if token.tag_ == "VBD" or token.tag_=="VBZ":
             verbs.append(token.text)
     if check==" ":
         return True
@@ -215,57 +133,64 @@ def sort_combinations(combinations,question):
         i=i+1
     return sorted_combinations
     
-def merge_comb_stop_words(combinations,question,questionStopWords):
-    mergedCombinations=[]
-    remainCombinations=[]
-    questionWords=question.split(' ')
-    for comb in combinations:
-        if len(comb)==0:
-            continue
-        if any(x.istitle() for x in comb):
-            remainCombinations.append(comb)
-        else:
-            mergedCombinations.append(comb)
-    temp=""      
-
+def merge_comb_stop_words(combinations,combinations_relations,question,questionStopWords):
+    final_combinations=[]   
+    only_stopwords_exist=True
     i=0
-    if len(remainCombinations)==1:
-        mergedCombinations.append(remainCombinations[0])
-        return mergedCombinations
-    while i < len(remainCombinations):
-
-        if i+1<len(remainCombinations):
-            if temp=="":
-                current=remainCombinations[i]
-            else:
-                current=temp
-            if check_only_stopwords_exist(question,current,remainCombinations[i+1],questionStopWords):
-                temp=current+question[question.find(current)+len(current):question.rfind(remainCombinations[i+1])]+remainCombinations[i+1]
-                i=i+2
-                continue
-            else:
-                if temp!="":
-                    mergedCombinations.append(temp.strip())
-                    temp=""
+    temp=combinations[i]
+    while only_stopwords_exist and i+1<len(combinations):
+        if wiki_search_elastic.propertySearchExactmatch(temp):
+            if not check_only_stopwords_exist(question,temp,combinations[i+1],questionStopWords):
+                combinations_relations.append(temp)
+                i=i+1
+                if (i<len(combinations)):
+                    temp = combinations[i]
                     continue
                 else:
-                    mergedCombinations.append(remainCombinations[i])
-                temp=""
-        else:
-            if temp!="":
-                if check_only_stopwords_exist(question, temp, remainCombinations[i], questionStopWords):
-                    final=temp+question[question.find(temp)+len(temp):question.rfind(remainCombinations[i])]+remainCombinations[i]
-                    mergedCombinations.append(final)
-                else:
-                    mergedCombinations.append(temp)
-                    mergedCombinations.append(remainCombinations[i])
+                    break
             else:
-                mergedCombinations.append(remainCombinations[i])
-        i=i+1
-    if temp!="":
-        mergedCombinations.append(temp)
+                old_temp=temp
+                temp=temp+question[question.find(temp)+len(temp):question.rfind(combinations[i+1])+len(combinations[i+1])]
+                if wiki_search_elastic.propertySearchExactmatch(temp):
+                    combinations_relations.append(temp)
+                    i=i+2
+                    if (i<len(combinations)):
+                        temp = combinations[i]
+                        continue
+                    else:
+                        break
+                else:
+                    combinations_relations.append(old_temp)
+                    i = i + 1
+                    if (i<len(combinations)):
+                        temp = combinations[i]
+                        continue
+                    else:
+                        break
 
-    return mergedCombinations
+        if check_only_stopwords_exist(question,temp,combinations[i+1],questionStopWords):
+            temp=temp+question[question.find(temp)+len(temp):question.rfind(combinations[i+1])+len(combinations[i+1])]
+            i=i+1
+        else:
+            if temp=="":
+                final_combinations.append(combinations[i])
+                i=i+1
+                if (i<len(combinations)):
+                    temp = combinations[i]
+                else:
+                    break
+            else:
+                final_combinations.append(temp)
+                i=i+1
+                if (i<len(combinations)):
+                    temp = combinations[i]
+                else:
+                    break
+                    
+    if temp!="":
+        final_combinations.append(temp)
+
+    return final_combinations,combinations_relations
 
 
 
@@ -275,70 +200,8 @@ def get_question_word_type(questionWord):
         return "http://www.wikidata.org/wiki/Q215627"
 
 
-def rank_triple(entities,relations,questionWord,question,k):
-    correctRelations=[]
-    sparql = SPARQLWrapper(wikidataSPARQL)
-    entity1Candidates=entities[0]
-    entity2Candidates=entities[1]
-    for entity1 in entity1Candidates:
-        for entity2 in entity2Candidates:
-            for relation in relations:
-                sparql.setQuery("""
-                        ASK WHERE { 
-                            <entity1[1]> <relation[1]> <entity2[1]>
-                        }    
-                    """)
-                sparql.setReturnFormat(JSON)
-                results1 = sparql.query().convert()
-                if results1['boolean']:
-                    targetType=get_question_word_type(questionWord)
-                    if "/property/" not in relation[1] and  targetType is not None :
-                        if check_relation_range_type(relation[1],targetType) :
-                            correctRelations.append(relation)
-                            entity1[2]+=50
-                            entity2[2]+=50
-                            
-                    else:
-                        correctRelations.append(relation)
-                        entity1[2]+=50
-                        entity2[2]+=50
-                    continue
-                sparql.setQuery("""
-                        ASK WHERE { 
-                            <entity2[1]> <relation[1]> <entity1[1]>
-                        }    
-                    """)
-                sparql.setReturnFormat(JSON)
-                results2 = sparql.query().convert()
-                if results2['boolean']:
-                    targetType=get_question_word_type(questionWord)
-                    if "/property/" not in relation[1] and  targetType is not None :
-                        #rangeType=get_relation_range(relation[1])
-                        if check_relation_range_type(relation[1],targetType) :
-                            correctRelations.append(relation)
-                            #entity_raw[0]=entity
-                            entity1[2]+=50
-                            entity2[2]+=50
-                            
-                            #print("query 1")
-                    #print(relation)
-                    else:
-                        correctRelations.append(relation)
-                        #entity_raw[0]=entity
-                        entity1[2]+=50
-                        entity2[2]+=50
-                    #return correctRelations[:k],entities
-                    continue
-    entities=[]
-    entities.append(entity1Candidates)
-    entities.append(entity2Candidates)
-    if len(correctRelations)==0:
-        return relations,entities
-    else:
-        correctRelations=distinct_relations(correctRelations)
-        return correctRelations ,entities
-    
-def reRank_relations(entities,relations,questionWord,questionRelationsNumber,question,k):
+
+def reRank_relations(entities,relations,questionWord,questionRelationsNumber,question,k,head_rule):
     correctRelations=[]
     sparql = SPARQLWrapper(wikidataSPARQL)
     for entity_raw in entities:
@@ -346,7 +209,6 @@ def reRank_relations(entities,relations,questionWord,questionRelationsNumber,que
         for entity in entity_raw:
             if not link_found_flag:
                 for relation in relations:
-                    flag=False
                     relation_wiki="<http://www.wikidata.org/prop/direct/"+relation[1][relation[1].rfind('/')+1:]
                     sparql.setQuery("""
                                         ASK WHERE { 
@@ -357,13 +219,18 @@ def reRank_relations(entities,relations,questionWord,questionRelationsNumber,que
                     sparql.setMethod(POST)
                     results1 = sparql.query().convert()
                     if results1['boolean']:
-                        targetType=get_question_word_type(questionWord)
-                        if  targetType is not None:
-                            if check_relation_range_type(relation[1],targetType) :
+                        if head_rule:
+                            targetType=get_question_word_type(questionWord)
+                            if targetType is not None:
+                                if check_relation_range_type(relation[1],targetType) :
+                                    correctRelations.append(relation)
+                                    entity[3]+=45
+                                    relation[3]+=45
+                            else:
                                 correctRelations.append(relation)
-                                entity[3]+=15
-                                relation[3]+=15
-                        else:
+                                entity[3]+=40
+                                relation[3] += 40
+                        else: 
                             correctRelations.append(relation)
                             entity[3]+=12
                             relation[3] += 12
@@ -379,41 +246,27 @@ def reRank_relations(entities,relations,questionWord,questionRelationsNumber,que
                     sparql.setMethod(POST)
                     results2 = sparql.query().convert()
                     if results2['boolean']:
-                        targetType=get_question_word_type(questionWord)
-                        if  targetType is not None :
-                            #rangeType=get_relation_range(relation[1])
-                            
-                            if check_relation_range_type(relation[1],targetType) :
-                                correctRelations.append(relation)
-                                entity[3]+=10
-                                relation[3] += 10
-                        else:
-                            correctRelations.append(relation)
-                            entity[3]+=8
-                            relation[3] += 8   
-                        link_found_flag=True
-                        break
-                #################################################################
-                    sparql.setQuery("""
-                        ASK WHERE { 
-                             """+entity[1]+""" ?p ?o. ?o """+relation_wiki+""" ?z}    
-                    """)
-                    sparql.setReturnFormat(JSON)
-                    if questionRelationsNumber > 1:
-                        results3 = sparql.query().convert()
-                        if results3['boolean']:
+                        if head_rule:
                             targetType=get_question_word_type(questionWord)
                             if  targetType is not None :
+                                #rangeType=get_relation_range(relation[1])
+                                
                                 if check_relation_range_type(relation[1],targetType) :
                                     correctRelations.append(relation)
-                                    entity[3]+=5
-                                    relation[3] += 5
+                                    entity[3]+=15
+                                    relation[3] += 15
                             else:
                                 correctRelations.append(relation)
-                                entity[3]+=3
-                                relation[3] += 3  
-                            link_found_flag=True
-                            break
+                                entity[3]+=12
+                                relation[3] += 12
+                        else: 
+                            correctRelations.append(relation)
+                            entity[3]+=13
+                            relation[3] += 13
+                        #link_found_flag=True
+                        #break
+                #################################################################
+
   
     return relations,entities
 
@@ -433,10 +286,10 @@ def mix_list_items(mixedRelations,k):
     relations=[]
     for raw in mixedRelations:
         if any(relation[3]>0 for relation in raw):
-            for relation in sorted(raw, reverse=True, key=lambda x: x[3])[:k]:
+            for relation in sorted(raw, key=lambda x: (-x[3],int(x[1][x[1].rfind("/")+2:-1]),-x[2]))[:k]:
                 relations.append(relation)
         else:
-            raw= sorted(raw, key = lambda x: (int(x[1][x[1].rfind("/")+2:-1]),-x[2]))
+            raw= sorted(raw, key = lambda x: (-x[2],int(x[1][x[1].rfind("/")+2:-1])))
             for relation in raw[:k]:
                 relations.append(relation)
     return relations
@@ -445,22 +298,15 @@ def mix_list_items_entities(mixedEntities,k):
     entities=[]
     for raw in mixedEntities:
         if any(entity[3]>0 for entity in raw):
-            y=sorted(raw , key=lambda x: (-x[3],int(x[1][x[1].rfind("/")+2:-1])))
-            for entity in sorted(raw , key=lambda x: (-x[3],int(x[1][x[1].rfind("/")+2:-1])))[:k]:
+            for entity in sorted(raw , key=lambda x: (-x[3],-x[2],int(x[1][x[1].rfind("/")+2:-1])))[:k]:
                 entities.append(entity)
         else:
-            raw= sorted(raw, key = lambda x: (int(x[1][x[1].rfind("/")+2:-1]),-x[2]))
+            raw= sorted(raw, key = lambda x: (-x[2],int(x[1][x[1].rfind("/")+2:-1])))
             for entity in raw[:k]:
                 entities.append(entity)         
     return entities
 
-def rank_entities_string_similarity(entities):
-    for raw in entities:
-        for entity in raw:
-            if entity[2]!=0:
-                entity[2]+=(SequenceMatcher(None, entity[3], entity[1][entity[1].rfind('/')+1:]).ratio())*10
-                entity[2]+=(SequenceMatcher(None, entity[3], entity[0]).ratio())*20
-    return entities
+
 
 def check_relation_range_type(relation,qType):
     return True
@@ -497,83 +343,10 @@ def split_base_on_s(combinations):
             result.append(comb)
     return result
 
-def process_word_E_long(question): 
-    global count
-    k=1
 
-    entities=[]
-    
-    originalQuestion=question
-    question=question.replace("?","")
-    question=question.replace(".","")
-    question=question.replace("!","")
-    question=question.replace("'s","")
-    question=question.replace("'","")
-    question=question.replace("\\","")
-    question=question.replace("#","")
-    question=question[0].lower()+question[1:]
-    questionStopWords=stopwords.extract_stop_words_question(question,stopWordsList)
-    combinations=get_question_combinatios(question,questionStopWords)  
-    combinations=split_base_on_verb(combinations,originalQuestion)
-    for idx,term in enumerate(combinations):
-        if len(term)==0:
-            continue
-        if term[0].istitle():
-            continue;
-        ontologyResults=wiki_search_elastic.ontologySearch(term)
-        propertyResults=wiki_search_elastic.propertySearch(term)
-        if len(ontologyResults) > 2 or len(propertyResults) > 0:
-            del combinations[idx]
-            
-    combinations=merge_comb_stop_words(combinations,question,questionStopWords)
-    combinations=sort_combinations(combinations,question)
-    combinations=merge_entity_prefix(question,combinations,originalQuestion)
-    combinations,compare_found=split_bas_on_comparison(combinations)
-    combinations=extract_abbreviation(combinations)
-    try:
-        for term in combinations:
-            #print(term)
-            entityResults=wiki_search_elastic.entitySearch(term)
-            if len(entityResults)>0:
-                entities.append([entity+[term] for entity in entityResults])
-            
-    except:
-        return []
-    results=[]
-    for raw in entities:
-        for entity in sorted(raw, reverse=True, key=lambda x: x[2])[:k]:
-            results.append(entity)
-    return [[entity[1],entity[4]] for entity in results]
 
-def process_word_E(question):
-    #print(question)
-    startTime=time.time() 
-    global count
-    k=1
-
-    entities=[]
-    question=question.replace("?","")
-    question=question.replace(".","")
-    question=question.replace("!","")
-    question=question.replace("'s","")
-    question=question.replace("'","")
-    question=question.replace("\\","")
-    question=question.replace("#","")
-    
-  
-    try:
-        entityResults=wiki_search_elastic.entitySearch(question)
-    except:
-        return []
-    for entity in sorted(entityResults, reverse=True, key=lambda x: x[2])[:k]:
-        entities.append(entity)
-   
-    #print("Entities:")
-    #print(entities)
-    return [[entity[1],entity[2]] for entity in entities]
-
-def process_text_E_R(question,k=1):
-    raw=evaluate([question])
+def process_text_E_R(question,rules,k=1):
+    raw=evaluate([question],rules,evaluation=False)
     #time=raw[1]
     #print(raw)
     question=question.replace("?","")
@@ -631,7 +404,7 @@ def extract_stop_words_question(text):
     stopwords=[]
     doc = nlp(text)
     for token in doc:
-        if token.is_stop:
+        if token.is_stop and token.text!="name":
             stopwords.append((token.text))
 
     return stopwords
@@ -680,7 +453,7 @@ def upper_all_entities(combinations,text):
     return final_combinations
 
 
-def split_base_on_entities(combinations,text):
+def split_base_on_entities(combinations,combinations_relations,text):
     doc = nlp(text)
     #entities = [x.text for x in doc.ents]
     final_combinations=[]
@@ -695,10 +468,11 @@ def split_base_on_entities(combinations,text):
             ent_text=ent_text.replace("#","")
             if ent_text in comb and ent.label_ =="PERSON":
                 remaining_comb=comb.replace(ent_text,'').strip()
+                combinations_relations.append(remaining_comb)
                 entity_text=ent_text
                 for rem_comb in remaining_comb.split(' '):
                     rem_comb_index=token_index(doc,rem_comb)
-                    if doc[rem_comb_index].pos_=="PROPN":
+                    if doc[rem_comb_index].pos_=="PROPN"  :
                         if rem_comb_index > token_index(doc,ent_text.split(' ')[0]):
                             entity_text=entity_text+" "+rem_comb
                         else:
@@ -711,7 +485,7 @@ def split_base_on_entities(combinations,text):
                 comb_processed=True
         if not comb_processed:
             final_combinations.append(comb)
-    return final_combinations
+    return final_combinations,combinations_relations
             
                 
                 
@@ -731,18 +505,28 @@ def merge_comb_det(combinations,text):
         else:
             final_combinations.append(comb)
     return final_combinations
-            
-                       
-    
-        
         
 
-def evaluate(raw):
+
+
+
+def get_relations_seachindex(combinations,combinations_relations):
+    final_combinations=[]
+    for comb in combinations:
+        if wiki_search_elastic.propertySearchExactmatch(comb):
+            combinations_relations.append(comb)
+        else:
+            final_combinations.append(comb)
+    return final_combinations,combinations_relations
+
+
+        
+
+def evaluate(raw,rules,evaluation=True):
     try:
-        evaluation=True
+        #global rules
+        #evaluation=True
         relations_flag=False
-        startTime=time.time()
-        oneQuestion=False
         global correctRelations
         #correctRelations=0
         global wrongRelations
@@ -758,14 +542,14 @@ def evaluate(raw):
         p_relation=0
         r_relation=0
         k=1
-        correct=True
         questionRelationsNumber=0
         entities=[]
         questionWord=raw[0].strip().split(' ')[0]
+        
         mixedRelations=[]
-        #beforeMixRelations=[]
         question=raw[0]
-        #print(question)
+        if question.strip()[-1]!="?":
+            question=question+"?"
         originalQuestion=question
         question=question[0].lower() + question[1:]
         question=question.replace("?","")
@@ -773,42 +557,67 @@ def evaluate(raw):
         question=question.replace("!","")
         question=question.replace("\\","")
         question=question.replace("#","")
-    
-        questionStopWords=extract_stop_words_question(question)
-        # print('questionStopWords: ', questionStopWords)
-        combinations=get_question_combinatios(question,questionStopWords)
-        # print('combinations: ',combinations)
-        combinations=merge_comb_stop_words(combinations,question,questionStopWords)
-        #print(combinations)
-    
-        combinations=split_base_on_verb(combinations,originalQuestion)
-        combinations=split_base_on_s(combinations)
-        oldCombinations=combinations
+
+        questionStopWords = []
+        combinations = question.split(' ')
+        combinations_relations=[]
+
+
+
+
+        if any(x==1 for x in rules):
+            questionStopWords=extract_stop_words_question(question)#rule1: Stopwords cannot be entities or relations
+        if any(x==2 for x in rules):
+            combinations=get_question_combinatios(question,questionStopWords) #rule 2: If two or more words do not have any stopword in between, consider them as a single compound word
         
-        for idx,term in enumerate(combinations):
-            if len(term)==0:
-                continue
-            if term[0].istitle():
-                continue;
+        if any(x==4 for x in rules):
+            combinations,combinations_relations=split_base_on_verb(combinations,combinations_relations,originalQuestion)  #rule 4: Verbs cannot be an entity, Verbs act as a division point of the sentence in case of two entities and we do not merge tokens from either side of the verb.
+            combinations=split_base_on_s(combinations)  
+            
+        if any(x==3 for x in rules):        
+            combinations,combinations_relations=merge_comb_stop_words(combinations,combinations_relations,question,questionStopWords) #rule 3: Entities with only stopwords between them are one entity
+        
+                  
+        if any(x==5 for x in rules):
+            for idx,term in enumerate(combinations): #rule 5: If a token does not have any relation candidate, identify it as an entity
+                if len(term)==0:
+                    continue 
+                if term[0].istitle():
+                    continue;
     
-            propertyResults=wiki_search_elastic.propertySearch(term)
+                propertyResults=wiki_search_elastic.propertySearch(term)
+        
+                if len(propertyResults) == 0:  
+                    combinations[idx]=term.capitalize()
+                    question=question.replace(term,term.capitalize())
+
+            if any(x==3 for x in rules): 
+                combinations=sort_combinations(combinations,question) 
+        
+
+         
+        if any(x==8 for x in rules):
+            combinations,compare_found=split_bas_on_comparison(combinations) #rule 8: Comparison words acts as a point of division in case of two tokens/entities
     
-            if len(propertyResults) == 0:    
-                combinations[idx]=term.capitalize()
-                question=question.replace(term,term.capitalize())
-                
-        combinations=merge_comb_stop_words(combinations,question,questionStopWords)
-        combinations=sort_combinations(combinations,question)
-        combinations=merge_entity_prefix(question,combinations,originalQuestion)
-        combinations,compare_found=split_bas_on_comparison(combinations)
-        combinations=extract_abbreviation(combinations)
-        combinations=split_base_on_entities(combinations,originalQuestion)
+        if any(x==9 for x in rules):
+            combinations=extract_abbreviation(combinations) #rule 9: Abbreviations are separate entities
+        
+        if any(x==10 for x in rules):
+            combinations,combinations_relations=split_base_on_entities(combinations,combinations_relations,originalQuestion) #rule 10: Proper nouns and 
+
+        
+        if any(x==14 for x in rules):
+            combinations,combinations_relations=get_relations_seachindex(combinations,combinations_relations) #rule 14:
+        
         combinations=upper_all_entities(combinations,originalQuestion)
-        combinations=merge_comb_det(combinations,originalQuestion)
+
+        if any(x==12 for x in rules):
+            combinations=merge_comb_det(combinations,originalQuestion) #rule 12: Merge the determiner in the combination, if preceding an entity
+            
+        #Rules applied during/after elastic search
         i=0
         nationalityFlag=False
         for term in combinations:
-            properties=[]
             entities_term=[]
             if len(term)==0:
                 continue
@@ -816,45 +625,48 @@ def evaluate(raw):
             if check_entities_in_text(originalQuestion,term):
                 term=term.capitalize()
             
-            if any(x.isupper() for x in term) :
-                # print(term," ", i)
-                entityResults=wiki_search_elastic.entitySearch(term)
-                if " and " in term:
-                    for word in term.split(' and '):
-                        entityResults.extend(wiki_search_elastic.entitySearch(word.strip()))
-                if " or " in term:
-                    for word in term.split(' or '):
-                        entityResults.extend(wiki_search_elastic.entitySearch(word.strip()))
-                if len(entityResults)!=0:
-                    for result in entityResults:
-                        if result[1] not in [e[1] for e in entities_term]:
-                            entities_term.append(result+[term])
-                    #print(len(entities_term))
-                    entities.append(entities_term)
-                        #print(entities)
-            else:
-                propertyResults=wiki_search_elastic.propertySearch(term)
-                if len(propertyResults)!=0:
-                        propertyResults=[result+[term] for result in propertyResults]
-                        properties=properties+propertyResults
-                mixedRelations.append("")
-                mixedRelations[i]=properties
-                i=i+1
-    
+            entityResults=wiki_search_elastic.entitySearch(term)
+            if " and " in term:
+                for word in term.split(' and '):
+                    entityResults.extend(wiki_search_elastic.entitySearch(word.strip()))
+            if " or " in term:
+                for word in term.split(' or '):
+                    entityResults.extend(wiki_search_elastic.entitySearch(word.strip()))
+            if len(entityResults)!=0:
+                for result in entityResults:
+                    if result[1] not in [e[1] for e in entities_term]:
+                        entities_term.append(result+[term])
+                entities.append(entities_term)
+               
+                
+                
+        for term in combinations_relations:
+            properties=[]
+            propertyResults=wiki_search_elastic.propertySearch(term)
+            if len(propertyResults)!=0:
+                    propertyResults=[result+[term] for result in propertyResults]
+                    properties=properties+propertyResults
+            mixedRelations.append("")
+            mixedRelations[i]=properties
+            i=i+1
+            
         questionRelationsNumber=len(mixedRelations)
-        oldEnities=entities
-        if (len(mixedRelations)==0 and questionWord.lower()=="when") or compare_found:
-            mixedRelations.append([["time","<http://www.wikidata.org/wiki/Property:P569>",0,20,"when"]])
-            compare_found=False
+
+        if (len(mixedRelations)==0 and questionWord.lower()=="when"): 
+            mixedRelations.append([["time","<http://www.wikidata.org/wiki/Property:P569>",0,20,"when"]]) 
     
         for i in range(len(mixedRelations)):
             #print(i)
             mixedRelations[i]=distinct_relations(mixedRelations[i])
             try:
-                mixedRelations[i],entities=reRank_relations(entities,mixedRelations[i],questionWord,questionRelationsNumber,question,k)
-            except:
+                if any(x==13 for x in rules): #rule13: If the text is a question, use the question word to increase the weight of all the relations which range matches the question word expected answer.
+                    head_rule = True
+                else:
+                    head_rule = False
+                mixedRelations[i],entities=reRank_relations(entities,mixedRelations[i],questionWord,questionRelationsNumber,question,k,head_rule)
+            except: 
                 try:
-                    mixedRelations[i],entities=reRank_relations(entities,mixedRelations[i],questionWord,questionRelationsNumber,question,k)
+                    mixedRelations[i],entities=reRank_relations(entities,mixedRelations[i],questionWord,questionRelationsNumber,question,k,head_rule)
                 except:
                     continue
             
@@ -863,37 +675,21 @@ def evaluate(raw):
         
         if nationalityFlag:
             mixedRelations.append(["country","<https://www.wikidata.org/wiki/Property:P17>",20,"country"])
-    
+            
         if evaluation:
             if relations_flag:
-                prop = "<http://www.wikidata.org/wiki/Property:"+raw[2][0]+">"
-                #prop =raw[2]
-                #numberSystemRelations=len(raw[1])
-                numberSystemRelations = 1
+                numberSystemRelations=len(raw[2])
                 intersection= set(raw[2]).intersection([tup[1][tup[1].rfind('/')+1:-1] for tup in mixedRelations])
                 if numberSystemRelations!=0 and len(mixedRelations)!=0:
                     p_relation=len(intersection)/len(mixedRelations)
                     r_relation=len(intersection)/numberSystemRelations
     
-                if relation[relation.rfind('/')+1:] in [tup[1][tup[1].rfind('/')+1:] for tup in mixedRelations]:
-                    correctRelations=correctRelations+1
-    
-                else:
-                    wrongRelations=wrongRelations+1
-                    correct=False
-                    global questions_labels
-    
     
             true_entity=[]
             for e in raw[1]:
                 true_entity.append(e)
-            #true_entity = raw[1]
             numberSystemEntities=len(raw[1])
-            # print(true_entity, entities)
             intersection= set(true_entity).intersection([tup[1][tup[1].rfind('/')+1:-1] for tup in entities])
-    
-            #true_entity = "<http://www.wikidata.org/entity/"+raw[0]+">"
-            numberSystemEntities=len(raw[1])
     
             if numberSystemEntities!=0 and len(entities)!=0 :
                 p_entity=len(intersection)/len(entities)
@@ -903,19 +699,15 @@ def evaluate(raw):
                     correctEntities=correctEntities+1
                 else:
                     wrongEntities=wrongEntities+1
-                    correct=False
     
         count=count+1
-        #endTime=time.time()
-        #raw.append(endTime-startTime)
-      
         ############        
         raw.append([[tup[1],tup[4]] for tup in mixedRelations])        
         raw.append([[tup[1],tup[4]] for tup in entities])
         raw.append(p_entity)
         raw.append(r_entity)
-        #raw.append(p_relation)
-        #raw.append(r_relation)
+        raw.append(p_relation)
+        raw.append(r_relation)
         global threading
         if threading==True:
             global results
@@ -923,6 +715,7 @@ def evaluate(raw):
         
         return raw
     except:
+        #raise
         print("error")
 
 
@@ -930,10 +723,6 @@ def datasets_evaluate():
     global threading
     threading=True
     
-    k=1
-    kMax=10
-    p_entity=0
-    p_relation=0
     global correctRelations
     correctRelations=0
     global wrongRelations
@@ -942,23 +731,19 @@ def datasets_evaluate():
     correctEntities=0
     global wrongEntities
     wrongEntities=0
-    startQ=0
-    endQ=5000
     errors=0
     global count
     count=1
     
     global results
     results=[]
-    p_e=0
-    p_r=0
 
-    #questions=read_dataset('datasets/simplequestions.txt')
+
     
     
-    #filepath = 'datasets/'+dataset_file
-    questions=wiki_evaluation.read_simplequestions_entities()
-
+    questions=wiki_evaluation.read_simplequestions_entities_upper()
+    global rules
+    rules = [1,2,3,4,5,8,9,10,12,13,14]
     
     if threading:
         pool = ThreadPool(12)
@@ -971,7 +756,7 @@ def datasets_evaluate():
                 single_result=evaluate(question)
                 print(count)
                 count=count+1
-                #print( "#####" + str((correctRelations * 100) / (correctRelations + wrongRelations)))
+                print( "#####" + str((correctRelations * 100) / (correctRelations + wrongRelations)))
                 print("#####" + str((correctEntities * 100) / (correctEntities + wrongEntities)))
                 results.append(single_result)
             
@@ -981,27 +766,27 @@ def datasets_evaluate():
                 continue
      
         
-    with open('datasets/results/FALCON_simple.csv', mode='w', newline='', encoding='utf-8') as results_file:
+    with open('datasets/results/finaaaaal/FALCON_webqsp.csv', mode='w', newline='', encoding='utf-8') as results_file:
         writer = csv.writer(results_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
         writer.writerows(results)    
-    #print("Correct Relations:",correctRelations)
-    #print("Relations:")
-    #print((correctRelations*100)/(correctRelations+wrongRelations))
+    print("Correct Relations:",correctRelations)
+    print("Relations:")
+    print((correctRelations*100)/(correctRelations+wrongRelations))
     print("Correct Entities:",correctEntities)
     print("Entities:")
     print((correctEntities*100)/(correctEntities+wrongEntities))
     print(correctEntities+wrongEntities)
-    ''''print("p_entity:")
-    print(p_entity)
-    print("p_relation:")
-    print(p_relation)'''
-    
-    #x=[i for i in range (len(questions))]
-    #y=[question[4] for question in questions]
+
 
 if __name__ == '__main__':
-    datasets_evaluate()
-    #process_text_E_R('What is the operating income for Qantas?')
+    #datasets_evaluate()
+    global count
+    count=0
+    global threading
+    threading=False
+    rules = [1,2,3,4,5,8,9,10,12,13,14]
+    #rules = [1,2,3]
+    process_text_E_R('who is the wife of barack obama?',rules)
+    #datasets_evaluate()
 
 
-    

@@ -70,19 +70,23 @@ if __name__ == "__main__":
     wrong = 0
     i = 0
     for question in questions:
-        output = open_tapioca_call(question[0])
-        c, w, p, r, entities = evaluate(output['annotations'], question)
-        correct += c
-        wrong += w
-        # print(c)
-        result.append([question[0], question[1], entities, p, r])
-        print(str(i) + "#####" + str((correct * 100) / (correct + wrong)))
-        i = i + 1
+        try:
+            output = open_tapioca_call(question[0])
+            c, w, p, r, entities = evaluate(output['annotations'], question)
+            correct += c
+            wrong += w
+            # print(c)
+            result.append([question[0], question[1], entities, p, r])
+            print(str(i) + "#####" + str((correct * 100) / (correct + wrong)))
+            i = i + 1
+        except:
+            continue
+            
     print("total correct entities: ", correct)
     print("Total wrong entities: ", wrong)
     print("P:")
     print((correct * 100) / (correct + wrong))
-    with open('../results_lcquad2_entities_OpenTapioca_without_tellme.csv', mode='w', newline='', encoding='utf-8') as results_file:
+    with open('../datasets/results/final/results_lcquad2_entities_OpenTapioca.csv', mode='w', newline='', encoding='utf-8') as results_file:
         writer = csv.writer(results_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
         writer.writerows(result)
 

@@ -103,3 +103,19 @@ def propertySearch(query):
         
     return results[:15]
 
+def propertySearchExactmatch(query):
+    indexName = "wikidatapropertyindex"
+    ###################################################
+    elasticResults = es.search(index=indexName, doc_type=docType, body={
+        "query": {
+            "match": {"label": query}
+        }
+    }
+                               )
+    for result in elasticResults['hits']['hits']:
+        if result["_source"]["label"].lower().replace('.','').strip()==query.lower().strip():
+            return True
+
+
+    return False
+

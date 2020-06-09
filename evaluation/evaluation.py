@@ -18,13 +18,11 @@ def process_lcquad_2(questions):
     dataset=[]
     i=0
     for question in questions:
-        if i==1000:
-            return dataset
         wikidata_sparql=question['sparql_wikidata']
-        if wikidata_sparql.count(':P') > 1:
-            continue
-        if 'Tell me' in question['question']:
-            continue
+        #if wikidata_sparql.count(':P') > 1:
+            #continue
+        #if 'Tell me' in question['question']:
+            #continue
         entities_pattern=":Q\d*"
         relations_pattern=":P\d*"
         entities=re.findall(entities_pattern,wikidata_sparql)
@@ -39,13 +37,14 @@ def process_lcquad_2(questions):
             question_text=question['NNQT_question'].replace('{','').replace('}','').replace('<','').replace('>','')
         dataset.append([question_text,entities,relations])
         i=i+1
+    return dataset
         
         
         
 
 
 def read_lcquad_2():
-    data = json.load(io.open('../datasets/lcquad.json', encoding='utf-8'))
+    data = json.load(io.open('./datasets/lcquad2_test.json', encoding='utf-8'))
     questions=process_lcquad_2(data)
     return questions
     
@@ -72,3 +71,37 @@ def read_simplequestions_entities():
 		# 	print(q," has more elements")
 	f.close()
 	return ans
+
+def read_simplequestions():
+	f = open('./datasets/simplequestions.txt', 'r',encoding='utf-8')
+	rows=f.readlines()
+	ans = []
+	for q in rows:
+		q = q.rstrip('\n')
+		line = q.split("\t")
+		if 'R' in line[1]:
+			line[1].replace('R','P')
+		if not isLineEmpty(line):
+			ans.append([line[3],[line[0]],[line[1].replace('R','P')]])
+		# if(len(line)!=4):
+		# 	print(q," has more elements")
+	f.close()
+	return ans
+
+def read_simplequestions_entities_upper():
+    f = open('./datasets/simplequestions.txt', 'r',encoding='utf-8')
+    rows=f.readlines()
+    ans = []
+    for q in rows:
+        q = q.rstrip('\n')
+        line = q.split("\t")
+        if 'R' in line[1]:
+            line[1].replace('R','P')
+        if not isLineEmpty(line):
+            line[3]=line[3][0].lower()+line[3][1:]
+            if (any(x.isupper() for x in line[3])):
+              ans.append([line[3],[line[0]]])
+        # if(len(line)!=4):
+        # 	print(q," has more elements")
+    f.close()
+    return ans
