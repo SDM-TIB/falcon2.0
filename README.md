@@ -68,19 +68,19 @@ For evaluating Falcon 2.0 we relied on three different question answering datase
 ## Experimental Results for Entity Linking
 
 ### SimpleQuestions dataset
-[SimpleQuestion dataset ](https://github.com/askplatypus/wikidata-simplequestions) contains 5622 test questions which are answerable using Wikidata as underlying Knowledge Graph. Falcon 2.0 reports precision value 0.66, recall value 0.75 and F-score value 0.70 on this dataset. 
+[SimpleQuestion dataset ](https://github.com/askplatypus/wikidata-simplequestions) contains 5622 test questions which are answerable using Wikidata as underlying Knowledge Graph. Falcon 2.0 reports precision value 0.56, recall value 0.64 and F-score value 0.60 on this dataset. 
 
 ### LC-QuAD 2.0 dataset
-[LC-Quad 2.0](http://lc-quad.sda.tech/) contains 6046 test questions that are mostly complex (more than one entity and relation). On this dataset, Falcon 2.0 reports a precision value 0.50, recall value 0.66 and F-score 0.57. 
+[LC-Quad 2.0](http://lc-quad.sda.tech/) contains 6046 test questions that are mostly complex (more than one entity and relation). On this dataset, Falcon 2.0 reports a precision value 0.50, recall value 0.56 and F-score 0.53. 
 
 
 ### WebQSP-WD dataset
-[WebQSP-WD](https://github.com/UKPLab/coling2018-graph-neural-networks-question-answering/blob/master/WEBQSP_WD_README.md) contains 1639 test questions with single entity and relation per question. Falcon 2.0 outperforms all other baselines with highest F-score value 0.84, precision value 0.80 and highest recall value 0.88 on WebQSP-WD dataset. 
+[WebQSP-WD](https://github.com/UKPLab/coling2018-graph-neural-networks-question-answering/blob/master/WEBQSP_WD_README.md) contains 1639 test questions with single entity and relation per question. Falcon 2.0 outperforms all other baselines with highest F-score value 0.82, precision value 0.80 and highest recall value 0.84 on WebQSP-WD dataset. 
 
 ## Experimental Results for Relation Linking
 
 ### SimpleQuestions dataset
-Falcon 2.0 reports a precision value of 0.34, recall value 0.37 and F-score 0.36 on SimpleQuestions dataset for relation linking task.
+Falcon 2.0 reports a precision value of 0.35, recall value 0.44 and F-score 0.39 on SimpleQuestions dataset for relation linking task.
 
 ### LC-QuAD 2.0
 Falcon 2.0 reports a precision value of 0.44, recall value 0.37 and F-score 0.40 on LC-Quad 2.0 dataset. 
