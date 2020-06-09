@@ -9,15 +9,17 @@ from multiprocessing.pool import ThreadPool
 
 nlp = spacy.load('en_core_web_sm')
 
-wikidataSPARQL="http://node3.research.tib.eu:4010/sparql"
+# Link to Wikidata SPARQL endpoint
+wikidataSPARQL="http://node3.research.tib.eu:4010/sparql" 
 
 stopWordsList=wiki_stopwords.getStopWords()
 comparsion_words=wiki_stopwords.getComparisonWords()
+
+# Flag evaluation variable to True to run Falcon on datasets
 evaluation = False
 
 
-
-
+# To enlist the verbs in the input query
 def get_verbs(question):
     verbs=[]
     entities=[]
@@ -42,6 +44,7 @@ def get_verbs(question):
                 verbs.append(token.text)
     return verbs
 
+# To split the tokens if one or more verbs exists in between 
 def split_base_on_verb(combinations,combinations_relations,question):
     newCombinations=[]
     verbs=get_verbs(question)
@@ -52,7 +55,6 @@ def split_base_on_verb(combinations,combinations_relations,question):
             if word in verbs:
                 flag=True
                 combinations_relations.append(word.strip())
-                #newCombinations.append(word.strip())
                 for term in comb.split(word):
                     if term!="":
                         newCombinations.append(term.strip())
@@ -62,10 +64,7 @@ def split_base_on_verb(combinations,combinations_relations,question):
         
     return newCombinations,combinations_relations
 
-
-                 
-              
-            
+# To perform tokenization and compounding based on stopwords in the input query 
 def get_question_combinatios(question,questionStopWords):
     combinations=[]
     tempCombination=""
@@ -83,6 +82,7 @@ def get_question_combinatios(question,questionStopWords):
               combinations.append(tempCombination.strip())  
     return combinations
 
+# To check if two entities are separated by one or more stopwords
 def check_only_stopwords_exist(question,comb1,comb2,questionStopWords):
     check=question[question.find(comb1)+len(comb1):question.rfind(comb2)]
     doc = nlp(question)
@@ -114,7 +114,7 @@ def check_only_stopwords_exist(question,comb1,comb2,questionStopWords):
             
     return flag
     
-    
+# To enlist the surface forms in order of their occurrence in the input query    
 def sort_combinations(combinations,question):
     question=question.replace("'s","")
     question=question.replace("'","")
@@ -133,6 +133,7 @@ def sort_combinations(combinations,question):
         i=i+1
     return sorted_combinations
     
+# To merge entities with only stopwords in between    
 def merge_comb_stop_words(combinations,combinations_relations,question,questionStopWords):
     final_combinations=[]   
     only_stopwords_exist=True
@@ -194,13 +195,13 @@ def merge_comb_stop_words(combinations,combinations_relations,question,questionS
 
 
 
-
+# To identify the question head word
 def get_question_word_type(questionWord):
     if questionWord.lower()=="who":
         return "http://www.wikidata.org/wiki/Q215627"
 
 
-
+# To generate triples by combining the entity and relation surface forms and rank them
 def reRank_relations(entities,relations,questionWord,questionRelationsNumber,question,k,head_rule):
     correctRelations=[]
     sparql = SPARQLWrapper(wikidataSPARQL)
@@ -270,7 +271,6 @@ def reRank_relations(entities,relations,questionWord,questionRelationsNumber,que
   
     return relations,entities
 
-
 def distinct_relations(relations):
     result=[]
     #print(len(relations))
@@ -306,8 +306,7 @@ def mix_list_items_entities(mixedEntities,k):
                 entities.append(entity)         
     return entities
 
-
-
+# To check the Wikidata RDF range of a relation surface form
 def check_relation_range_type(relation,qType):
     return True
     sparql = SPARQLWrapper(wikidataSPARQL)
@@ -331,7 +330,8 @@ def check_relation_range_type(relation,qType):
         else:
             return False
     return results1['boolean']
- 
+
+#To split the surface forms in case of possessive forms 
 def split_base_on_s(combinations):
     result=[]
     for comb in combinations:
@@ -343,22 +343,17 @@ def split_base_on_s(combinations):
             result.append(comb)
     return result
 
-
-
+# Call the evaluate function to run the pipeline on the input query
 def process_text_E_R(question,rules,k=1):
     raw=evaluate([question],rules,evaluation=False)
-    #time=raw[1]
-    #print(raw)
     question=question.replace("?","")
     question=question.strip()
- 
     print(raw)
     entities=raw[2]
-    
-   
     relations=raw[1]
     return entities,relations
 
+# To identify abbreviations as entity surface forms
 def extract_abbreviation(combinations):
     new_comb=[]
     for com in combinations:
@@ -373,7 +368,8 @@ def extract_abbreviation(combinations):
         if not abb_found:
             new_comb.append(com)
     return new_comb
-                
+
+# To split the surface forms if any comparison word exists in between                
 def split_bas_on_comparison(combinations):
     compare_found=False
     new_comb=[]
@@ -391,7 +387,7 @@ def split_bas_on_comparison(combinations):
             new_comb.append(com)
     return new_comb,compare_found
             
-
+# Use the library to check for entities
 def check_entities_in_text(text,term):
     doc = nlp(text)
     if len(doc.ents)>0:       
@@ -399,7 +395,7 @@ def check_entities_in_text(text,term):
             if ent.text==term or ent.text in term:
                 return True
 
-    
+# To extract stopwords from the input query    
 def extract_stop_words_question(text):
     stopwords=[]
     doc = nlp(text)
@@ -409,6 +405,7 @@ def extract_stop_words_question(text):
 
     return stopwords
 
+# To get position of the token in the input query
 def token_index(doc,token_):
     i=0
     for token in doc:
@@ -417,6 +414,7 @@ def token_index(doc,token_):
         i=i+1
     return -1
 
+# To prepare the list of surface formes before performing elastic search
 def upper_all_entities(combinations,text):
     doc = nlp(text)
     relations=[]
@@ -452,7 +450,7 @@ def upper_all_entities(combinations,text):
             final_combinations.append(comb.capitalize())
     return final_combinations
 
-
+# To identify proper nouns as entities
 def split_base_on_entities(combinations,combinations_relations,text):
     doc = nlp(text)
     #entities = [x.text for x in doc.ents]
@@ -486,10 +484,8 @@ def split_base_on_entities(combinations,combinations_relations,text):
         if not comb_processed:
             final_combinations.append(comb)
     return final_combinations,combinations_relations
-            
-                
-                
-                
+                           
+# To merge the preceding determiner (if any) with the entity surface form
 def merge_comb_det(combinations,text):
     doc = nlp(text)
     final_combinations=[]
@@ -507,9 +503,6 @@ def merge_comb_det(combinations,text):
     return final_combinations
         
 
-
-
-
 def get_relations_seachindex(combinations,combinations_relations):
     final_combinations=[]
     for comb in combinations:
@@ -518,14 +511,10 @@ def get_relations_seachindex(combinations,combinations_relations):
         else:
             final_combinations.append(comb)
     return final_combinations,combinations_relations
-
-
         
-
+# To run Falcon 2.0 pipeline on the input query
 def evaluate(raw,rules,evaluation=True):
     try:
-        #global rules
-        #evaluation=True
         relations_flag=False
         global correctRelations
         #correctRelations=0
@@ -544,7 +533,7 @@ def evaluate(raw,rules,evaluation=True):
         k=1
         questionRelationsNumber=0
         entities=[]
-        questionWord=raw[0].strip().split(' ')[0]
+        questionWord=raw[0].strip().split(' ')[0] # Fetch the query head word
         
         mixedRelations=[]
         question=raw[0]
@@ -563,8 +552,11 @@ def evaluate(raw,rules,evaluation=True):
         combinations_relations=[]
 
 
-
-
+        """ Falcon 2.0 pipeline is implemented as a forward chain of a carefully curated list of rules based on 
+            fundamental principles of the English morphology. The user is allowed to choose a set of rules to process the query.
+            The "rules" list variable enlists the rules chosen by the user. 
+            Based on this set of rules, the Falcon 2.0 pipeline processes the input query.
+        """
         if any(x==1 for x in rules):
             questionStopWords=extract_stop_words_question(question)#rule1: Stopwords cannot be entities or relations
         if any(x==2 for x in rules):
@@ -603,11 +595,11 @@ def evaluate(raw,rules,evaluation=True):
             combinations=extract_abbreviation(combinations) #rule 9: Abbreviations are separate entities
         
         if any(x==10 for x in rules):
-            combinations,combinations_relations=split_base_on_entities(combinations,combinations_relations,originalQuestion) #rule 10: Proper nouns and 
+            combinations,combinations_relations=split_base_on_entities(combinations,combinations_relations,originalQuestion) #rule 10: Split the surface form if it's already recognized as a Person
 
         
         if any(x==14 for x in rules):
-            combinations,combinations_relations=get_relations_seachindex(combinations,combinations_relations) #rule 14:
+            combinations,combinations_relations=get_relations_seachindex(combinations,combinations_relations) #rule 14
         
         combinations=upper_all_entities(combinations,originalQuestion)
 
@@ -637,8 +629,6 @@ def evaluate(raw,rules,evaluation=True):
                     if result[1] not in [e[1] for e in entities_term]:
                         entities_term.append(result+[term])
                 entities.append(entities_term)
-               
-                
                 
         for term in combinations_relations:
             properties=[]
@@ -675,7 +665,8 @@ def evaluate(raw,rules,evaluation=True):
         
         if nationalityFlag:
             mixedRelations.append(["country","<https://www.wikidata.org/wiki/Property:P17>",20,"country"])
-            
+        
+        # If the evaluation flag is set to True, run the Falcon 2.0 pipeline on datasets    
         if evaluation:
             if relations_flag:
                 numberSystemRelations=len(raw[2])
@@ -718,7 +709,7 @@ def evaluate(raw,rules,evaluation=True):
         #raise
         print("error")
 
-
+# To run Falcon 2.0 on test datasets
 def datasets_evaluate():
     global threading
     threading=True
@@ -738,9 +729,6 @@ def datasets_evaluate():
     global results
     results=[]
 
-
-    
-    
     questions=wiki_evaluation.read_simplequestions_entities_upper()
     global rules
     rules = [1,2,3,4,5,8,9,10,12,13,14]
@@ -779,14 +767,10 @@ def datasets_evaluate():
 
 
 if __name__ == '__main__':
-    #datasets_evaluate()
     global count
     count=0
     global threading
     threading=False
     rules = [1,2,3,4,5,8,9,10,12,13,14]
-    #rules = [1,2,3]
-    process_text_E_R('who is the wife of barack obama?',rules)
-    #datasets_evaluate()
-
+    process_text_E_R('Who is the wife of barack obama?',rules)
 
