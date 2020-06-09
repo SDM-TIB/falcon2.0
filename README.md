@@ -1,6 +1,6 @@
 # FALCON 2.0
 
-Falcon 2.0 is a entity and relation linking tool over Wikidata. It leverages fundamental principles of the English morphology (e.g., N-Gram tiling and N-Gramsplitting) to accurately map entities and relations in short texts to resources in  Wikidata. Falcon is available as Web API and can be queried using CURL: 
+Falcon 2.0 is an entity and relation linking tool over Wikidata. It leverages fundamental principles of the English morphology (e.g., N-Gram tiling and N-Gramsplitting) to accurately map entities and relations in short texts to resources in  Wikidata. Falcon is available as Web API and can be queried using CURL: 
 ```
 curl --header "Content-Type: application/json" \
   --request POST \
@@ -15,9 +15,9 @@ To begin with, install the libraries stated in the requirements.txt file as foll
 ```
 pip install -r requirements.txt
 ```
-The code for FALCON tool has three main aspects: elastic search, the algorithm and evaluation. 
+The FALCON 2.0 tool's code has three main aspects: elastic search, algorithm, and evaluation. 
 ## Elastic Search and Background Knowledge
-Before we begin working with the Wikidata Dump, we first need to connect to an elasticsearch endpoint, and a Wikidata endpoint. The elasticsearch endpoint is used to interact with our cluster through the Elasticsearch API. 
+Before beginning working with the Wikidata Dump, we first need to connect to an elasticsearch endpoint and a Wikidata endpoint. The elasticsearch endpoint is used to interact with our cluster through the Elasticsearch API. 
 The ElasticSearch dump (Also knowns as R2: Background Knowledge) for Falcon 2.0 can be downloaded from this link:
 https://doi.org/10.6084/m9.figshare.11362883
 
@@ -32,16 +32,16 @@ To change your elasticsearch endpoint, makes changes in Elastic/searchIndex.py a
 ```
 es = Elasticsearch(['http://localhost:9200'])
 ```
-Wikidata SPARQL endpoint helps us to quickly search and analyse big volumes of the data stored in the knowledge graph (here, Wikidata). To change Wikidata endpoint, make changes in main.py:
+Wikidata SPARQL endpoint helps us to quickly search and analyze big volumes of the data stored in the knowledge graph (here, Wikidata). To change Wikidata endpoint, make changes in main.py:
 ```
 wikidataSPARQL = " "
 ```
-We then create indices for property search and entity search over wikidata. Refer to the following two functions in Elastic/addIndex.py for the code:
+We then create indices for property search and entity search over Wikidata. Refer to the following two functions in Elastic/addIndex.py for the code:
 ```
 def propertyIndexAdd(): ...
 def entitiesIndexAdd(): ...
 ```
-Furthermore, we need to execute a search query and get back search hits that match the query. The search query feature is used to find whether a mention is an entity or a property in Wikidata. Note that Elasticsearch uses JSON as the serialisation format for the documents. The elasticsearch query used to retrieve candidates from elasticsearch is as follows:
+Furthermore, we need to execute a search query and get back search hits that match the query. The search query feature is used to find whether a mention is an entity or a property in Wikidata. Note that Elasticsearch uses JSON as the serialization format for the documents. The elasticsearch query used to retrieve candidates from elasticsearch is as follows:
 ```
 {
   "query": {
@@ -56,14 +56,18 @@ def propertySearch(query): ...
 ```
 
 ## Algorithm
-main.py contains the code for automatic entity and relation linking to resources in Wikidata using rule-based learning. Falcon 2.0 uses the same approach for Wikidata knowledge graph as used in Falcon for DBpedia(https://labs.tib.eu/falcon/). The rules that represent the English morphology are maintained in a catalog; a forward chaining inference process is performed on top of the catalog during the tasks of extractionand linking. Falcon 2.0 also comprises several modules that identify and link entities and relations to Wikidata knowledge graph. These modules implement POS Tagging, Tokenization & Compounding, N-Gram Tiling, Candidate  ListGeneration, Matching & Ranking, Query Classifier, and N-Gram Splitting and are reused from the implementation of Falcon. 
+main.py contains the code for automatic entity and relation linking to resources in Wikidata using rule-based learning. Falcon 2.0 uses the same approach for Wikidata knowledge graph as used in Falcon for DBpedia(https://labs.tib.eu/falcon/). The rules that represent the English morphology are maintained in a catalog; a forward chaining inference process is performed on top of the catalog during the tasks of extraction and linking. Falcon 2.0 also comprises several modules that identify and link entities and relations to Wikidata knowledge graph. These modules implement POS Tagging, Tokenization & Compounding, N-Gram Tiling, Candidate  ListGeneration, Matching & Ranking, Query Classifier, and N-Gram Splitting. The modules are reused from the implementation of Falcon. 
 
 ## Evaluation
 
 ### Usage
-To run Falcon 2.0 you have to call the function "process_text_E_R(question)" where question is the short text to be processed by Falcon 2.0 We
+To run Falcon 2.0, you have to call the function "process_text_E_R(question)" where the question is the short text to be processed by Falcon 2.0 We
 
-For evaluating Falcon 2.0 we relied on three different question answering datasets namely SimpleQuestion dataset for Wikidata, WebQSP-WD, and LC-QuAD 2.0.
+For evaluating Falcon 2.0, we relied on three different question answering datasets, namely SimpleQuestion dataset for Wikidata, WebQSP-WD, and LC-QuAD 2.0.
+
+For reproducing the results, "evaluateFalconAPI.py" and "evaluateFalconAPI_entities.py" can be used.
+"evaluateFalconAPI_entities.py" evaluates entity linking.
+ "evaluateFalconAPI.py" evaluates entity and relation linking.
 
 ## Experimental Results for Entity Linking
 
@@ -75,7 +79,7 @@ For evaluating Falcon 2.0 we relied on three different question answering datase
 
 
 ### WebQSP-WD dataset
-[WebQSP-WD](https://github.com/UKPLab/coling2018-graph-neural-networks-question-answering/blob/master/WEBQSP_WD_README.md) contains 1639 test questions with single entity and relation per question. Falcon 2.0 outperforms all other baselines with highest F-score value 0.82, precision value 0.80 and highest recall value 0.84 on WebQSP-WD dataset. 
+[WebQSP-WD](https://github.com/UKPLab/coling2018-graph-neural-networks-question-answering/blob/master/WEBQSP_WD_README.md) contains 1639 test questions with a single entity and relation per question. Falcon 2.0 outperforms all other baselines with the highest F-score value 0.82, precision value 0.80, and highest recall value 0.84 on the WebQSP-WD dataset. 
 
 ## Experimental Results for Relation Linking
 
