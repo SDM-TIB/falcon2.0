@@ -66,8 +66,10 @@ To run Falcon 2.0, you have to call the function "process_text_E_R(question)" wh
 For evaluating Falcon 2.0, we relied on three different question answering datasets, namely SimpleQuestion dataset for Wikidata, WebQSP-WD, and LC-QuAD 2.0.
 
 For reproducing the results, "evaluateFalconAPI.py" and "evaluateFalconAPI_entities.py" can be used.
+
 "evaluateFalconAPI_entities.py" evaluates entity linking.
- "evaluateFalconAPI.py" evaluates entity and relation linking.
+
+"evaluateFalconAPI.py" evaluates entity and relation linking.
 
 ## Experimental Results for Entity Linking
 
