@@ -138,6 +138,8 @@ def merge_comb_stop_words(combinations,combinations_relations,question,questionS
     final_combinations=[]   
     only_stopwords_exist=True
     i=0
+    if len(combinations)==0:
+        return final_combinations,combinations_relations
     temp=combinations[i]
     while only_stopwords_exist and i+1<len(combinations):
         if wiki_search_elastic.propertySearchExactmatch(temp):

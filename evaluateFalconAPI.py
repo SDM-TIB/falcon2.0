@@ -88,10 +88,10 @@ def evaluate(entities_falcon,relations_falcon, entities_goldstandard,relations_g
 
 result = []
 result.append(["Question", "Gold Standard Entities", "Gold Standard Relations", "FALCON_Entities","P_E", "R_E","FALCON_Relations","P_R","R_R"])
-questions = wiki_evaluation.read_simplequestions()
+questions = wiki_evaluation.read_lcquad_2()
 #questions= wiki_evaluation.read_lcquad_2()
 counter = 0
-for question in questions:
+for question in questions[:10]:
     if len(question[1])==0:
         continue
     entities_falcon,relations_falcon = falcon_call(question[0])        
@@ -100,6 +100,6 @@ for question in questions:
     print(str(counter))
     counter = counter + 1
     
-with open('datasets/results/test_api/falcon_simple.csv', mode='w', newline='', encoding='utf-8') as results_file:
+with open('datasets/results/test_api/falcon_lcquad2.csv', mode='w', newline='', encoding='utf-8') as results_file:
     writer = csv.writer(results_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
     writer.writerows(result)
