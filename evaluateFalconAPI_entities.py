@@ -83,6 +83,6 @@ for question in questions[:10]:
     print(str(counter))
     counter = counter + 1
     
-with open('datasets/results/test_api/falcon_simple_test.csv', mode='w', newline='', encoding='utf-8') as results_file:
+with open('datasets/falcon_simple_test.csv', mode='w', newline='', encoding='utf-8') as results_file:
     writer = csv.writer(results_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
     writer.writerows(result)
