@@ -1,6 +1,6 @@
 # FALCON 2.0
 
-Falcon 2.0 is an entity and relation linking tool over Wikidata (accepted in CIKM 2020). The full CIKM paper can be found at the link: [Falcon 2.0 Paper (https://arxiv.org/pdf/1912.11270.pdf)
+Falcon 2.0 is an entity and relation linking tool over Wikidata (accepted in CIKM 2020). The full CIKM paper can be found at the link: [Falcon 2.0 Paper(https://arxiv.org/pdf/1912.11270.pdf)
 
 It leverages fundamental principles of the English morphology (e.g., N-Gram tiling and N-Gramsplitting) to accurately map entities and relations in short texts to resources in  Wikidata. Falcon is available as Web API and can be queried using CURL: 
 ```
