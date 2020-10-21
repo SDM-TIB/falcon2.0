@@ -74,7 +74,7 @@ result.append(["Question", "Gold Standard Entities","FALCON_Entities","P_E", "R_
 questions = wiki_evaluation.read_simplequestions_entities_upper()
 #questions = wiki_evaluation.read_test_set()
 counter = 0
-for question in questions[:10]:
+for question in questions:
     if len(question[1])==0:
         continue
     entities_falcon = falcon_call(question[0])        
