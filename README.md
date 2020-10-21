@@ -93,3 +93,25 @@ Falcon 2.0 reports a precision value of 0.35, recall value 0.44 and F-score 0.39
 ### LC-QuAD 2.0
 Falcon 2.0 reports a precision value of 0.44, recall value 0.37 and F-score 0.40 on LC-Quad 2.0 dataset. 
 
+# Cite our work
+
+```
+@inproceedings{10.1145/3340531.3412777,
+author = {Sakor, Ahmad and Singh, Kuldeep and Patel, Anery and Vidal, Maria-Esther},
+title = {Falcon 2.0: An Entity and Relation Linking Tool over Wikidata},
+year = {2020},
+isbn = {9781450368599},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3340531.3412777},
+doi = {10.1145/3340531.3412777},
+booktitle = {Proceedings of the 29th ACM International Conference on Information &amp; Knowledge Management},
+pages = {3141–3148},
+numpages = {8},
+keywords = {wikidata, dbpedia, relation linking, nlp, english morphology, entity linking, background knowledge},
+location = {Virtual Event, Ireland},
+series = {CIKM '20}
+}
+
+```
+
