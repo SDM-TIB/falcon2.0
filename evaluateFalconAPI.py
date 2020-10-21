@@ -91,7 +91,7 @@ result.append(["Question", "Gold Standard Entities", "Gold Standard Relations", 
 questions = wiki_evaluation.read_lcquad_2()
 #questions= wiki_evaluation.read_lcquad_2()
 counter = 0
-for question in questions[:10]:
+for question in questions:
     if len(question[1])==0:
         continue
     entities_falcon,relations_falcon = falcon_call(question[0])        
